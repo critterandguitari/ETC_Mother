@@ -31,7 +31,6 @@ class System:
     mode_index = 0
     mode = ''
     mode_root = ''
-    refresh_mode = False
     error = ''
     
     # audio
@@ -71,13 +70,13 @@ class System:
         self.mode_index = index
         self.mode = self.mode_names[self.mode_index]
         self.mode_root = self.MODES_PATH + self.mode + "/"
-        self.refresh_mode = True
+        self.error = ''
 
     def set_mode_by_name (self, name) :
         self.mode = name #self.mode_names[self.mode_index]
         self.mode_index = self.mode_names.index(name)
         self.mode_root = self.MODES_PATH + self.mode + "/"
-        self.refresh_mode = True
+        self.error = ''
 
     def next_mode (self) :
         self.mode_index += 1
@@ -270,6 +269,5 @@ class System:
         self.aux_button = False
         self.screengrab = False
         self.trig = False
-        self.refresh_mode = False
 
 

@@ -77,8 +77,8 @@ for i in range(0, len(etc.mode_names)-1) :
         etc.set_mode_by_index(i)
         mode = sys.modules[etc.mode]
         print etc.mode_root
-        osd.loading_banner(hwscreen,"Loading " + str(etc.mode) + ". Memory used: " + str(psutil.virtual_memory()[2]) )
         mode.setup(screen, etc)
+        osd.loading_banner(hwscreen,"Loaded " + str(etc.mode) + ". Memory used: " + str(psutil.virtual_memory()[2]) )
     except AttributeError :
         print "no setup found"
         continue 
@@ -127,9 +127,7 @@ while 1:
     # set the mode on which to call drawi
 # TODO if the module is no longer in sys (like got deleted and not reloaded, this will error,
 # so use exception
-    if etc.refresh_mode:
-        error = ''
-        mode = sys.modules[etc.mode]
+    mode = sys.modules[etc.mode]
 
     if etc.clear_screen:
         screen.fill(etc.bg_color) 
@@ -139,16 +137,6 @@ while 1:
 
     etc.bg_color =  etc.color_picker_bg()
     
-    # set mode
-    #if etc.set_mode :
-    #    error = ''
-    #    print "setting: " + etc.mode
-    #    try :
-    #        etc.mode_root = MODES_PATH + etc.mode + "/"
-    #        mode = sys.modules[etc.mode]
-    #    except KeyError:
-    #        error = "Module " +etc.mode+ " is not loaded, probably it has errors"
-
     # reload mode
     if etc.reload_mode :
         etc.error = ''

@@ -4,12 +4,6 @@ import pygame
 import traceback
 import imp
 
-etc = None
-
-def init (etc_object) :
-    global etc
-    etc = etc_object 
-
 def get_immediate_subdirectories(dir):
     if os.path.isdir(dir):
         return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]  
@@ -17,7 +11,7 @@ def get_immediate_subdirectories(dir):
         return []
 
 # save a screenshot
-def screengrab(screen):
+def screengrab(screen, etc):
     global etc
     filenum = 0
     imagepath = etc.GRABS_PATH + str(filenum) + ".jpg"
@@ -32,9 +26,8 @@ def screengrab(screen):
     etc.tengrabs[etc.grabindex] = screen.copy()
     print "grabbed " + imagepath
 
-
 # load modes,  check if modes are found
-def load_modes():
+def load_modes(etc):
     global etc
     print "loading modes..."
     got_a_mode = False # at least one mode
@@ -54,7 +47,8 @@ def load_modes():
     return got_a_mode
 
 # recent grabs, first check if Grabs folder is available, create if not
-def load_grabs():
+def load_grabs(etc):
+    global etc
     if not(os.path.isdir(etc.GRABS_PATH)) :
         print 'No grab folder, creating...'
         os.system('mkdir ' + etc.GRABS_PATH)
