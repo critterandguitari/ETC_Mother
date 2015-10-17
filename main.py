@@ -1,5 +1,6 @@
 import os
 import pygame
+import time
 import random
 import glob
 import mvp_system
@@ -7,103 +8,93 @@ import imp
 import socket
 import traceback
 import sys
-#import liblo
-from liblo import *
+import liblo
 from pygame.locals import *
 import alsaaudio, audioop
-import time
-
+ 
 #create mvp object
 mvp = mvp_system.System()
 mvp.clear_flags()
 
 # OSC init
-class MyServer(ServerThread):
-    osc_msgs_recv = 0
-    mvp = None
-    def __init__(self, mvp):
-        self.mvp = mvp
-        ServerThread.__init__(self, 4000)
-    
-    @make_method('/foo', 'ifs')
-    def foo_callback(self, path, args):
-        i, f, s = args
-        self.osc_msgs_recv += 1
-        #print "received message '%s' with arguments: %d, %f, %s" % (path, i, f, s)
-
-    @make_method('/knobs', 'iiiiii')
-    def knobs_callback(self, path, args):
-        self.osc_msgs_recv += 1
-        #k1, k2, k3, k4, k5, k6 = args
-        #mvp.knob1l = float(k4) / 1023
-        #mvp.knob2l = float(k1) / 1023
-        #mvp.knob3l = float(k2) / 1023
-        #mvp.knob4l = float(k5) / 1023
-        #mvp.knob5l = float(k3) / 1023
-
-    @make_method('/key', 'ii')
-    def key_callback(self, path, args) :
-        self.osc_msgs_recv += 1
-        k, v = args
-        if (k == 2 and v > 0) : self.mvp.next_patch = True
-        if (k == 1 and v > 0) : self.mvp.prev_patch = True
-        if (k == 9 and v > 0) : self.mvp.clear_screen = True
-        if (k == 7 and v > 0) : self.mvp.screengrab = True
-        if (k == 4 and v > 0) : self.mvp.prev_preset()
-        if (k == 6 and v > 0) : self.mvp.save_preset()
-        if (k == 5 and v > 0) : self.mvp.next_preset()
-        if (k == 3 and v > 0) : 
-            if (self.mvp.osd) : self.mvp.osd = False
-            else : self.mvp.osd = True
-        if (k == 8 and v > 0) : 
-            if (self.mvp.auto_clear) : self.mvp.auto_clear = False
-            else : self.mvp.auto_clear = True
-        print str(k) + " " + str(v)
-
-    @make_method('/mnon', 'iii')
-    def mnon_callback(self,path, args):
-        self.osc_msgs_recv += 1
-        c, n, v = args
-        self.mvp.note_on = True
-        self.mvp.note_num = n
-        self.mvp.note_velocity = v
-        #print n
-
-    @make_method('/mcc', 'iii')
-    def mcc_callback(self, path, args):
-        self.mvp.osc_msgs_recv += 1
-        c, n, v = args
-        if n == 21 :
-            self.mvp.knob1l = float(v) / 127
-        if n == 22 :
-            self.mvp.knob2l = float(v) / 127
-        if n == 23 :
-            self.mvp.knob3l = float(v) / 127
-        if n == 24 :
-            self.mvp.knob4l = float(v) / 127
-        if n == 25 :
-            self.mvp.knob5l = float(v) / 127
-    
-    @make_method(None, None)
-    def fallback(self, path, args):
-        self.osc_msgs_recv += 1
-        print "received unknown message with args '%s'" % args
-
 try:
-    server = MyServer(mvp)
-except ServerError, err:
+    osc_server = liblo.Server(4000)
+except liblo.ServerError, err:
     print str(err)
     sys.exit()
 
-server.start()
-
 osc_msgs_recv = 0
 
-#osc_server.add_method("/knobs", 'iiiiii', knobs_callback)
-#osc_server.add_method("/key", 'ii', keys_callback)
-#osc_server/.add_method("/mnon", 'iii', midi_note_on_callback)
-#osc_server.add_method("/mcc", 'iii', midi_cc_callback)
-#osc_server.add_method(None, None, fallback)
+def fallback(path, args):
+    global osc_msgs_recv
+    osc_msgs_recv += 1
+
+def knobs_callback(path, args):
+    global osc_msgs_recv
+    osc_msgs_recv += 1
+    global mvp
+    k1, k2, k3, k4, k5, k6 = args
+    mvp.knob1l = float(k4) / 1023
+    mvp.knob2l = float(k1) / 1023
+    mvp.knob3l = float(k2) / 1023
+    mvp.knob4l = float(k5) / 1023
+    mvp.knob5l = float(k3) / 1023
+
+def keys_callback(path, args) :
+    global osc_msgs_recv
+    osc_msgs_recv += 1
+    global mvp
+    k, v = args
+    if (k == 2 and v > 0) : mvp.next_patch = True
+    if (k == 1 and v > 0) : mvp.prev_patch = True
+    if (k == 9 and v > 0) : mvp.clear_screen = True
+    if (k == 7 and v > 0) : mvp.screengrab = True
+    if (k == 4 and v > 0) : mvp.prev_preset()
+    if (k == 6 and v > 0) : mvp.save_preset()
+    if (k == 5 and v > 0) : mvp.next_preset()
+    if (k == 3 and v > 0) : 
+        if (mvp.osd) : mvp.osd = False
+        else : mvp.osd = True
+    if (k == 8 and v > 0) : 
+        if (mvp.auto_clear) : mvp.auto_clear = False
+        else : mvp.auto_clear = True
+
+    print str(k) + " " + str(v)
+
+def midi_note_on_callback(path, args):
+    global osc_msgs_recv
+    osc_msgs_recv += 1
+    global mvp
+    c, n, v = args
+    mvp.note_on = True
+    mvp.note_num = n
+    mvp.note_velocity = v
+    #print n
+
+def midi_cc_callback(path, args):
+    global osc_msgs_recv
+    osc_msgs_recv += 1
+    global mvp
+    c, n, v = args
+
+    if n == 21 :
+        mvp.knob1l = float(v) / 127
+    if n == 22 :
+        mvp.knob2l = float(v) / 127
+    if n == 23 :
+        mvp.knob3l = float(v) / 127
+    if n == 24 :
+        mvp.knob4l = float(v) / 127
+    if n == 25 :
+        mvp.knob5l = float(v) / 127
+#    print args
+
+
+osc_server.add_method("/knobs", 'iiiiii', knobs_callback)
+osc_server.add_method("/key", 'ii', keys_callback)
+osc_server.add_method("/mnon", 'iii', midi_note_on_callback)
+osc_server.add_method("/mcc", 'iii', midi_cc_callback)
+osc_server.add_method(None, None, fallback)
 
 #setup alsa for sound in
 inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,alsaaudio.PCM_NONBLOCK)
@@ -142,6 +133,7 @@ def get_immediate_subdirectories(dir):
 # init fb and main surfaces
 print "opening frame buffer"
 hwscreen = pygame.display.set_mode((1280,720),  pygame.FULLSCREEN | pygame.DOUBLEBUF, 32  )
+#hwscreen = pygame.display.set_mode((720,480),  pygame.FULLSCREEN | pygame.DOUBLEBUF, 32  )
 screen = pygame.Surface(hwscreen.get_size())
 screen.fill(GREEN) 
 hwscreen.blit(screen, (0,0))
@@ -191,7 +183,7 @@ for i in range(0,11):
     mvp.tengrabs_thumbs.append(pygame.Surface((128, 72)))
     mvp.tengrabs.append(pygame.Surface(hwscreen.get_size()))
 
-for filepath in sorted(glob.glob('/usbdrive/Grabs/*.bmp')):
+for filepath in sorted(glob.glob('/usbdrive/Grabs/*.jpg')):
     filename = os.path.basename(filepath)
     print 'loading grab: ' + filename
     img = pygame.image.load(filepath)
@@ -220,8 +212,8 @@ this_time = 0
 while 1:
     
     #check for OSC
-    #while (osc_server.recv(None)):
-    #    pass
+    while (osc_server.recv(1)):
+        pass
     #osc_server.recv(0)
 
     # get knobs from hardware or preset
@@ -237,9 +229,9 @@ while 1:
 
     # measure FPS
     count += 1
-    if ((count % 10) == 0):
+    if ((count % 50) == 0):
         now = time.time()
-        fps = 1 / ((now - start) / 10)
+        fps = 1 / ((now - start) / 50)
         start = now
 
     # get audio
@@ -333,12 +325,12 @@ while 1:
     #save frame
     if mvp.screengrab:
         filenum = 0
-        imagepath = "/usbdrive/Grabs/" + str(filenum) + ".bmp"
-        imagepath_thumb = "/usbdrive/Grabs/" + str(filenum) + "_thumb.bmp"
+        imagepath = "/usbdrive/Grabs/" + str(filenum) + ".jpg"
+        imagepath_thumb = "/usbdrive/Grabs/" + str(filenum) + "_thumb.jpg"
         while os.path.isfile(imagepath):
             filenum += 1
-            imagepath = "/usbdrive/Grabs/" + str(filenum) + ".bmp"
-            imagepath_thumb = "/usbdrive/Grabs/" + str(filenum) + "_thumb.bmp"
+            imagepath = "/usbdrive/Grabs/" + str(filenum) + ".jpg"
+            imagepath_thumb = "/usbdrive/Grabs/" + str(filenum) + "_thumb.jpg"
         pygame.image.save(screen,imagepath)
         # add to the grabs array
         #grab = screen
@@ -357,8 +349,6 @@ while 1:
         this_time = time.time()
         elapsed_time = this_time - last_time
         last_time = this_time
-        osc_msgs_recv = server.osc_msgs_recv
-        server.osc_msgs_recv = 0
         osc_msgs_per_sec = osc_msgs_recv / elapsed_time
         #osd.fill(GREEN) 
         pygame.draw.rect(hwscreen, OSDBG, (0, hwscreen.get_height() - 40, hwscreen.get_width(), 40))
