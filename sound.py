@@ -22,6 +22,7 @@ def recv() :
     global inp, etc, trig_this_time, trig_last_time
     # get audio
     l,data = inp.read()
+    peak = 0
     while l:
         for i in range(0,100) :
             try :
@@ -34,6 +35,9 @@ def recv() :
                     if (trig_this_time - trig_last_time) > .05:
                         etc.trig = True
                         trig_last_time = trig_this_time
+                if avg > peak :
+                    etc.audio_peak = avg
+                    peak = avg
                 etc.audio_in[i] = avg
             except :
                 pass

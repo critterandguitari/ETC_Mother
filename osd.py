@@ -18,6 +18,21 @@ def draw_knob_slider(screen, etc, offx, offy, index) :
     pygame.draw.line(screen, color, [offx, offy + 40], [offx + 16, offy + 40], 1)
     pygame.draw.rect(screen, color, (offx, offy + 40 - int(40*etc.knob[index]), 16, int(40*etc.knob[index])))
 
+def draw_vu(screen, etc, offx, offy):
+    color = etc.WHITE
+    for i in range(0,15) :
+        x = offx + 14 * i
+        pygame.draw.line(screen, color, [x, offy], [x + 10, offy], 1)
+        pygame.draw.line(screen, color, [x, offy], [x, offy + 30], 1)
+        pygame.draw.line(screen, color, [x + 10, offy], [x + 10, offy + 30], 1)
+        pygame.draw.line(screen, color, [x, offy + 30], [x + 10, offy + 30], 1)
+    color = etc.GREEN
+    for i in range(0, etc.audio_peak / 2048):
+        if i > 8 : color = (255,255,0)
+        if i == 14 : color = etc.RED
+        x = offx + 14 * i
+        pygame.draw.rect(screen, color, (x + 1, offy + 1, 9, 29))
+
 # loading banner helper
 def loading_banner(screen, stuff) :
     global etc
@@ -44,9 +59,13 @@ def render_overlay(screen) :
 
     font = pygame.font.Font("Avenir-Medium.ttf", 32)
 
-    
+    # first time through, gather some info
+    if etc.osd_first :
+        etc.ip = socket.gethostbyname(socket.gethostname())
+        etc.osd_first = False
+
+
     # mode
-    #mode_str = "Mode: " + str(etc.mode_index) + "/" + str(len(etc.mode_names)) + ", "  + str(etc.mode) 
     mode_str = " Mode:  "   + str(etc.mode) + " "
     text = font.render(mode_str, True, etc.WHITE, etc.BLACK)
     text_rect = text.get_rect()
@@ -64,12 +83,6 @@ def render_overlay(screen) :
     text_rect.x = 50
     text_rect.centery = 253
     screen.blit(text, text_rect)   
-        
-    
-    fps_str = "FPS: " + str(int(etc.fps))
-   # text = font.render(mode_str + "   " + scene_str + "   " + fps_str, True, etc.WHITE, etc.BLACK)
-
-
     
     # midi notes
     pygame.draw.rect(screen, etc.BLACK, (50, 285, 530, 55))
@@ -110,27 +123,74 @@ def render_overlay(screen) :
     screen.blit(text, text_rect)
     pygame.draw.rect(screen, etc.WHITE, (180, 425, 40, 35), 1)
     if etc.trig:
-        print "t"
-        pygame.draw.rect(screen, etc.GREEN, (180, 425, 40, 35))
+        pygame.draw.rect(screen, (255,255,0), (180, 425, 40, 35))
     
-    # ip    
-    mode_str = " IP Address:  "   + str(etc.ip) + " "
+    # input level 
+    mode_str = " Input Level:                         "
     text = font.render(mode_str, True, etc.WHITE, etc.BLACK)
     text_rect = text.get_rect()
     text_rect.x = 50
     text_rect.centery = 500
     screen.blit(text, text_rect)
+    draw_vu(screen, etc, 240, 484)
     
-        # ip    
-    mode_str = " Memory:  "   + str(etc.ip) + " "
+    # Auto Clear   
+    if etc.auto_clear :
+        mode_str = " Clear BG: Yes " 
+    else :
+        mode_str = " Clear BG: No "         
     text = font.render(mode_str, True, etc.WHITE, etc.BLACK)
     text_rect = text.get_rect()
     text_rect.x = 50
     text_rect.centery = 555
     screen.blit(text, text_rect)
-
-    for i in range(0,10) :
-        screen.blit(etc.tengrabs_thumbs[i], (128 * i,0))
+    
+    # ip    
+    mode_str = " IP Address:  "   + str(etc.ip) + " "
+    text = font.render(mode_str, True, etc.WHITE, etc.BLACK)
+    text_rect = text.get_rect()
+    text_rect.x = 790
+    text_rect.centery = 480
+    screen.blit(text, text_rect)
+    
+    # mem
+    mode_str = " Memory Used:  "   + str(int(etc.memory_used) + 1) + "% "
+    text = font.render(mode_str, True, etc.WHITE, etc.BLACK)
+    text_rect = text.get_rect()
+    text_rect.x = 790
+    text_rect.centery = 535
+    screen.blit(text, text_rect)
+    
+    # mem
+    mode_str = " FPS:  "   + str(int(etc.fps)) + " "
+    text = font.render(mode_str, True, etc.WHITE, etc.BLACK)
+    text_rect = text.get_rect()
+    text_rect.x = 790
+    text_rect.centery = 588
+    screen.blit(text, text_rect)
+    
+    # version
+    mode_str = " v1.0 "
+    text = font.render(mode_str, True, etc.WHITE, etc.BLACK)
+    text_rect = text.get_rect()
+    text_rect.x = 1180
+    text_rect.centery = 680
+    screen.blit(text, text_rect)
+    
+    # grabs
+    pygame.draw.rect(screen, etc.BLACK, (790, 150, 418, 295))
+    text = font.render(" Recent Grabs", True, etc.WHITE, etc.BLACK)
+    text_rect = text.get_rect()
+    text_rect.x = 790
+    text_rect.centery = 175
+    screen.blit(text, text_rect)
+    for i in range(0,3) :
+        screen.blit(etc.tengrabs_thumbs[i], (135 * i + 800,200))
+    for i in range(0,3) :
+        screen.blit(etc.tengrabs_thumbs[i + 3], (135 * i + 800,280))
+    for i in range(0,3) :
+        screen.blit(etc.tengrabs_thumbs[i + 6], (135 * i + 800,360))
+   
 
     # osd, errors
     i = 0

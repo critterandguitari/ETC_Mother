@@ -55,6 +55,7 @@ class System:
     
     # audio
     audio_in = [0] * 100
+    audio_peak = 0
     trig = False
     
     # knobs a used by mode 
@@ -77,11 +78,17 @@ class System:
     midi_clk = 0
 
     # system stuff 
+    memory_used = 0
     ip = ''
     auto_clear = True
     bg_color = (0, 0, 0)
     quit = False
     osd = False
+    osd_first = False #when osd is first turned on this is used to gather info
+
+    def set_osd(self, stat) :
+        self.osd = stat
+        self.osd_first = True
 
     def set_mode_by_index (self, index) :
         # TODO check if it exists

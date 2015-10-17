@@ -75,8 +75,8 @@ def keys_callback(path, args) :
     if (k == 6) : etc.save_or_delete_scene(v)
     if (k == 5 and v > 0) : etc.next_scene()
     if (k == 3 and v > 0) : 
-        if (etc.osd) : etc.osd = False
-        else : etc.osd = True
+        if (etc.osd) : etc.set_osd(False)
+        else : etc.set_osd(True)
     if (k == 8 and v > 0) : 
         if (etc.auto_clear) : etc.auto_clear = False
         else : etc.auto_clear = True

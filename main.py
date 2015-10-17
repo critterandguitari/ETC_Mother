@@ -75,8 +75,9 @@ for i in range(0, len(etc.mode_names)-1) :
         print "mode not found, probably has error"
         continue 
     try : 
+        osd.loading_banner(hwscreen,"Loading " + str(etc.mode) )
         mode.setup(screen, etc)
-        osd.loading_banner(hwscreen,"Loaded " + str(etc.mode) + "   Memory used: " + str(psutil.virtual_memory()[2]) )
+        etc.memory_used = psutil.virtual_memory()[2]
     except :
         print "error in setup, or setup not found"
         continue
@@ -93,8 +94,6 @@ start = time.time()
 # set initial mode
 etc.set_mode_by_index(0)
 mode = sys.modules[etc.mode]
-
-time.sleep(1)
 
 while 1:
     
