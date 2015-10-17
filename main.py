@@ -31,11 +31,6 @@ class MyServer(ServerThread):
         self.osc_msgs_recv += 1
         #print "received message '%s' with arguments: %d, %f, %s" % (path, i, f, s)
 
-    @make_method(None, None)
-    def fallback(self, path, args):
-        self.osc_msgs_recv += 1
-        #print "received unknown message '%s'" % path
-
     @make_method('/knobs', 'iiiiii')
     def knobs_callback(self, path, args):
         self.osc_msgs_recv += 1
@@ -88,7 +83,11 @@ class MyServer(ServerThread):
             self.mvp.knob4l = float(v) / 127
         if n == 25 :
             self.mvp.knob5l = float(v) / 127
-#    print args
+    
+    @make_method(None, None)
+    def fallback(self, path, args):
+        self.osc_msgs_recv += 1
+        print "received unknown message with args '%s'" % args
 
 try:
     server = MyServer(mvp)
@@ -354,7 +353,7 @@ while 1:
     hwscreen.blit(screen, (0,0))
     
     # osd
-    if True:#mvp.osd :
+    if mvp.osd :
         this_time = time.time()
         elapsed_time = this_time - last_time
         last_time = this_time
