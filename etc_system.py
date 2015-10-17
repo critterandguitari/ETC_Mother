@@ -80,7 +80,8 @@ class System:
     midi_pgm = 0
     midi_pgm_last = 0
     midi_clk = 0
-
+    midi_ch = 1
+    
     # system stuff 
     memory_used = 0
     ip = ''

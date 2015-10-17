@@ -9,6 +9,7 @@ import osc
 import sound
 import osd
 import liblo
+import midi
 print "starting..."
 
 # create etc object
@@ -49,9 +50,12 @@ except:
     raise
 
 # force midi to 17 (0 is omni)
-ch = ch % 17
-print "set MIDI to ch " + str(ch)
-osc.send("/midich", int(ch))
+etc.midi_ch = ch % 17
+print "set MIDI to ch " + str(etc.midi_ch)
+osc.send("/midich", int(etc.midi_ch))
+
+# setup midi input from USB
+midi.init(etc)
 
 # init fb and main surfaces
 print "opening frame buffer..."
@@ -121,11 +125,14 @@ mode = sys.modules[etc.mode]
 
 while 1:
     
-    #check for OSC
+    # check for OSC
     osc.recv()
 
-    #send get midi and knobs for next time
+    # send get midi and knobs for next time
     osc.send("/nf", 1) 
+
+    # check for midi from USB
+    midi.poll() 
 
     # get knobs, checking for override, and check for new note on
     etc.update_knobs_and_notes()

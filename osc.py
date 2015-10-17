@@ -6,6 +6,9 @@ osc_server = None
 osc_target = None
 
 cc_last = [0] * 5
+pgm_last = 0
+notes_last = [0] * 128
+clk_last = 0
 
 # OSC callbacks
 def fallback(path, args):
@@ -18,30 +21,36 @@ def fs_callback(path, args):
         etc.foot_pressed()
 
 def mblob_callback(path, args):
-    global etc, cc_last
+    global etc, cc_last, pgm_last, notes_last, clk_last
     midi_blob = args[0]
-    #print "received message: " + str(args)
+    
     for i in range(0, 5) :
         cc = midi_blob[16 + i]
         if cc != cc_last[i] :
             etc.cc_override_knob(i, float(cc) / 127)
             cc_last[i] = cc
             
-    #etc.cc_override_knob(0, float(midi_blob[16]) / 127)
-    #etc.cc_override_knob(1, float(midi_blob[17]) / 127)
-    #etc.cc_override_knob(2, float(midi_blob[18]) / 127)
-    #etc.cc_override_knob(3, float(midi_blob[19]) / 127)
-    #etc.cc_override_knob(4, float(midi_blob[20]) / 127)
-    etc.midi_clk = midi_blob[21] 
-    etc.midi_pgm = midi_blob[22]
-    
+    clk = midi_blob[21]
+    if (clk != clk_last):
+        etc.midi_clk = midi_blob[21]
+        clk_last = clk
+
+    pgm = midi_blob[22]
+    if (pgm != pgm_last):
+        etc.midi_pgm = pgm
+        pgm_last = pgm
+
     # parse the notes outta the bit field
     for i in range(0, 16) :
         for j in range(0, 8) :
             if midi_blob[i] & (1<<j) :
-                etc.midi_notes[(i * 8) + j] = 1
+                if(notes_last[(i*8)+j] != 1) : 
+                    etc.midi_notes[(i * 8) + j] = 1
+                    notes_last[(i*8)+j] = 1
             else :
-                etc.midi_notes[(i * 8) + j] = 0
+                if(notes_last[(i*8)+j] != 0) : 
+                    etc.midi_notes[(i * 8) + j] = 0
+                    notes_last[(i*8)+j] = 0
 
 def set_callback(path, args):
     global etc
@@ -53,7 +62,6 @@ def new_callback(path, args):
     global etc
     name = args[0]
     etc.load_new_mode(name)
-    
    
 def reload_callback(path, args):
     global etc
