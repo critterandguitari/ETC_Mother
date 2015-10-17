@@ -33,7 +33,7 @@ class System:
     OSDBG = (0,0,255)
 
     # screen grabs
-    tengrabs = []
+    latest_grab = None
     tengrabs_thumbs = []
     grabcount = 0
     grabindex = 0
