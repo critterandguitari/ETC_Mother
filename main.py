@@ -10,7 +10,6 @@ import psutil
 from pygame.locals import *
 import osc
 import sound
-import filer
 import osd
 import liblo
 print "starting..."
@@ -33,9 +32,6 @@ osc.init(etc)
 # setup alsa sound
 sound.init(etc)
 
-# setup file manager
-filer.init(etc)
-
 # init pygame, this has to happen after sound is setup
 # but before the graphics stuff below
 pygame.init()
@@ -56,9 +52,13 @@ hwscreen.blit(screen, (0,0))
 pygame.display.flip()
 time.sleep(2)
 
+# etc gets a refrence to screen so it can save screen grabs 
+etc.screen = screen
+print str(etc.screen) + " " +  str(screen)
+
 # load modes, post banner if none found
 print "loading modes..."
-if not (filer.load_modes()) :
+if not (etc.load_modes()) :
     print "no modes found."
     osd.loading_banner(hwscreen, "No Modes found.  Insert USB drive with Modes folder and restart.")
     while True:
@@ -84,7 +84,7 @@ for i in range(0, len(etc.mode_names)-1) :
         continue 
 
 # load screen grabs
-filer.load_grabs()
+etc.load_grabs()
 
 # used to measure fps
 start = time.time()
@@ -163,10 +163,6 @@ while 1:
     except Exception, e:
         etc.error = traceback.format_exc()
  
-    #save frame
-    if etc.screengrab:
-        filer.screengrab(screen)
-  
     #draw the main screen, limit fps 30
     clocker.tick(30)
     hwscreen.blit(screen, (0,0))

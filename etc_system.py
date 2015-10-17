@@ -1,6 +1,12 @@
 import fileinput
 import random
 import math
+import pygame
+import traceback
+import imp
+import os
+import glob
+import helpers
 
 class System:
 
@@ -8,7 +14,9 @@ class System:
     MODES_PATH = "/usbdrive/Modes/"
 
     RES =  (1280,720)
-    
+
+    screen = None
+
     fps = 0
     frame_count = 0
 
@@ -56,7 +64,6 @@ class System:
 
     # system stuff 
     ip = ''
-    screengrab = False
     auto_clear = True
     bg_color = (0, 0, 0)
     quit = False
@@ -105,6 +112,66 @@ class System:
         self.knob3 = self.knob[2]
         self.knob4 = self.knob[3]
         self.knob5 = self.knob[4]
+
+    # save a screenshot
+    def screengrab(self):
+        filenum = 0
+        imagepath = self.GRABS_PATH + str(filenum) + ".jpg"
+        while os.path.isfile(imagepath):
+            filenum += 1
+            imagepath = self.GRABS_PATH + str(filenum) + ".jpg"
+        pygame.image.save(self.screen,imagepath)
+        # add to the grabs array
+        self.grabindex += 1
+        self.grabindex %= 10
+        pygame.transform.scale(self.screen, (128, 72), self.tengrabs_thumbs[self.grabindex] )
+        self.tengrabs[self.grabindex] = self.screen.copy()
+        print "grabbed " + imagepath
+
+    # load modes,  check if modes are found
+    def load_modes(self):
+        print "loading modes..."
+        got_a_mode = False # at least one mode
+        mode_folders = helpers.get_immediate_subdirectories(self.MODES_PATH)
+
+        for mode_folder in mode_folders :
+            mode_name = str(mode_folder)
+            mode_path = self.MODES_PATH+mode_name+'/main.py'
+            print mode_path
+            try :
+                imp.load_source(mode_name, mode_path)
+                got_a_mode = True
+                self.mode_names.append(mode_name)
+            except Exception, e:
+                print traceback.format_exc()
+        
+        return got_a_mode
+
+    # recent grabs, first check if Grabs folder is available, create if not
+    def load_grabs(self):
+        if not(os.path.isdir(self.GRABS_PATH)) :
+            print 'No grab folder, creating...'
+            os.system('mkdir ' + self.GRABS_PATH)
+        print 'loading recent grabs...'
+        self.tengrabs = []
+        self.tengrabs_thumbs = []
+        self.grabcount = 0
+        self.grabindex = 0
+        for i in range(0,11):
+            self.tengrabs_thumbs.append(pygame.Surface((128, 72)))
+            self.tengrabs.append(pygame.Surface(self.RES ))
+
+        for filepath in sorted(glob.glob(self.GRABS_PATH + '*.jpg')):
+            filename = os.path.basename(filepath)
+            print 'loading grab: ' + filename
+            img = pygame.image.load(filepath)
+            img = img.convert()
+            thumb = pygame.transform.scale(img, (128, 72) )
+            #TODO : ensure img is 1280 x 720, or does it matter?
+            self.tengrabs[self.grabcount]= img
+            self.tengrabs_thumbs[self.grabcount] = thumb
+            self.grabcount += 1
+            if self.grabcount > 10: break
 
     def color_picker( self ):
         # convert knob to 0-1
@@ -267,7 +334,6 @@ class System:
         self.set_mode = False
         self.reload_mode = False
         self.aux_button = False
-        self.screengrab = False
         self.trig = False
 
 

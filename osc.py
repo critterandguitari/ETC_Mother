@@ -57,7 +57,7 @@ def keys_callback(path, args) :
     if (k == 2 and v > 0) : etc.next_mode()
     if (k == 1 and v > 0) : etc.prev_mode()
     if (k == 9 and v > 0) : etc.trig = True
-    if (k == 7 and v > 0) : etc.screengrab = True
+    if (k == 7 and v > 0) : etc.screengrab()
     if (k == 4 and v > 0) : etc.prev_preset()
     if (k == 6 and v > 0) : etc.save_preset()
     if (k == 5 and v > 0) : etc.next_preset()
