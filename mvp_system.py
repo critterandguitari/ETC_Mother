@@ -4,6 +4,13 @@ import math
 
 class System:
 
+    # screen grabs
+    tengrabs = []
+    tengrabs_thumbs = []
+    grabcount = 0
+    grabindex = 0
+
+    
     # TODO  fix this knob shit up
 
     # knobs used by patch (either preset or live)

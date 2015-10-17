@@ -8,11 +8,8 @@ import imp
 import socket
 import traceback
 import sys
-
 import liblo
-
 from pygame.locals import *
-
 import alsaaudio, audioop
  
 #create mvp object
@@ -26,20 +23,26 @@ except liblo.ServerError, err:
     print str(err)
     sys.exit()
 
+osc_msgs_recv = 0
+
+def fallback(path, args):
+    global osc_msgs_recv
+    osc_msgs_recv += 1
+
 def knobs_callback(path, args):
+    global osc_msgs_recv
+    osc_msgs_recv += 1
     global mvp
     k1, k2, k3, k4, k5, k6 = args
-    
-    mvp.knob1l = float(k4) / 1023
-    mvp.knob2l = float(k1) / 1023
-    mvp.knob3l = float(k2) / 1023
-    mvp.knob4l = float(k5) / 1023
-    mvp.knob5l = float(k3) / 1023
-    #print mvp.knob5l   
-
-    #print "received '%d'" % (k1)
+    #mvp.knob1l = float(k4) / 1023
+    #mvp.knob2l = float(k1) / 1023
+    #mvp.knob3l = float(k2) / 1023
+    #mvp.knob4l = float(k5) / 1023
+    #mvp.knob5l = float(k3) / 1023
 
 def keys_callback(path, args) :
+    global osc_msgs_recv
+    osc_msgs_recv += 1
     global mvp
     k, v = args
     if (k == 2 and v > 0) : mvp.next_patch = True
@@ -59,45 +62,45 @@ def keys_callback(path, args) :
     print str(k) + " " + str(v)
 
 def midi_note_on_callback(path, args):
+    global osc_msgs_recv
+    osc_msgs_recv += 1
     global mvp
     c, n, v = args
     mvp.note_on = True
     mvp.note_num = n
     mvp.note_velocity = v
-    print n
+    #print n
+
+def midi_cc_callback(path, args):
+    global osc_msgs_recv
+    osc_msgs_recv += 1
+    global mvp
+    c, n, v = args
+
+    if n == 21 :
+        mvp.knob1l = float(v) / 127
+    if n == 22 :
+        mvp.knob2l = float(v) / 127
+    if n == 23 :
+        mvp.knob3l = float(v) / 127
+    if n == 24 :
+        mvp.knob4l = float(v) / 127
+    if n == 25 :
+        mvp.knob5l = float(v) / 127
+#    print args
+
 
 osc_server.add_method("/knobs", 'iiiiii', knobs_callback)
 osc_server.add_method("/key", 'ii', keys_callback)
 osc_server.add_method("/mnon", 'iii', midi_note_on_callback)
-
-
-#while 1:
-    
-    #check for OSC
-#    while (osc_server.recv(1)):
-#        pass
-
+osc_server.add_method("/mcc", 'iii', midi_cc_callback)
+osc_server.add_method(None, None, fallback)
 
 #setup alsa for sound in
-
-# Open the device in nonblocking capture mode. The last argument could
-# just as well have been zero for blocking mode. Then we could have
-# left out the sleep call in the bottom of the loop
 inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,alsaaudio.PCM_NONBLOCK)
-#inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,0)
-
-# Set attributes: Mono, 8000 Hz, 16 bit little endian samples
 inp.setchannels(1)
 inp.setrate(8000)
 inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)
-
-# The period size controls the internal number of frames per period.
-# The significance of this parameter is documented in the ALSA api.
-# For our purposes, it is suficcient to know that reads from the device
-# will return this many frames. Each frame being 2 bytes long.
-# This means that the reads below will return either 320 bytes of data
-# or 0 bytes of data. The latter is possible because we are in nonblocking
-# mode.
 inp.setperiodsize(300)
 
 pygame.init()
@@ -127,6 +130,7 @@ def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir)
             if os.path.isdir(os.path.join(dir, name))]
 
+# init fb and main surfaces
 print "opening frame buffer"
 hwscreen = pygame.display.set_mode((1280,720),  pygame.FULLSCREEN | pygame.DOUBLEBUF, 32  )
 screen = pygame.Surface(hwscreen.get_size())
@@ -167,6 +171,31 @@ for patch_name in patch_names :
         print "no setup found"
         continue 
 
+
+# recent grabs
+print 'loading recent grabs...'
+mvp.tengrabs = []
+mvp.tengrabs_thumbs = []
+mvp.grabcount = 0
+mvp.grabindex = 0
+for i in range(0,11):
+    mvp.tengrabs_thumbs.append(pygame.Surface((128, 72)))
+    mvp.tengrabs.append(pygame.Surface(hwscreen.get_size()))
+
+for filepath in sorted(glob.glob('/usbdrive/Grabs/*.bmp')):
+    filename = os.path.basename(filepath)
+    print 'loading grab: ' + filename
+    img = pygame.image.load(filepath)
+    img = img.convert()
+    thumb = pygame.transform.scale(img, (128, 72) )
+    #TODO : ensure img is 1280 x 720
+    mvp.tengrabs[mvp.grabcount]= img
+    mvp.tengrabs_thumbs[mvp.grabcount] = thumb
+    mvp.grabcount += 1
+    if mvp.grabcount > 10: break
+
+
+
 buf = ''
 line = ''
 error = ''
@@ -176,16 +205,15 @@ fps = 0
 start = time.time()
 clocker = pygame.time.Clock()
 
-# fade out stuff
-wash_count = 0
-wash = pygame.Surface(screen.get_size())
-wash.set_alpha(10)
+last_time = time.time()
+this_time = 0
 
 while 1:
     
     #check for OSC
-    while (osc_server.recv(1)):
+    while (osc_server.recv(None)):
         pass
+    #osc_server.recv(0)
 
     # get knobs from hardware or preset
     mvp.update_knobs()
@@ -198,39 +226,31 @@ while 1:
             if event.key == K_ESCAPE:
                 exit()
 
+    # measure FPS
     count += 1
-    if ((count % 50) == 0):
+    if ((count % 10) == 0):
         now = time.time()
-        fps = 1 / ((now - start) / 50)
+        fps = 1 / ((now - start) / 10)
         start = now
 
     # get audio
-    # Read data from device
     l,data = inp.read()
     triggered = False
     while l:
-        #print str(audioop.getsample(data, 2 ,0) )
         for i in range(0,100) :
             try :
                 avg = audioop.getsample(data, 2, i * 3)
                 avg += audioop.getsample(data, 2, (i * 3) + 1)
                 avg += audioop.getsample(data, 2, (i * 3) + 2)
-                #avg += audioop.getsample(data, 2, (i * 3) + 3)
-                #avg += audioop.getsample(data, 2, (i * 4) + 3)
                 avg = avg / 3
                 if (avg > 1000) :
                     triggered = True
-                #if (triggered) :
                 mvp.audio_in[i] = avg
             except :
                 pass
         l,data = inp.read()
     
-        #print str(l)
-        # Return the maximum of the absolute value of all samples in a fragment.
-        #print audioop.max(data, 2)
-
-    # ... or parse lines from UDP instead
+    # parse lines from UDP instead, this is from web
     try :
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
         buf = buf + data
@@ -238,18 +258,20 @@ while 1:
             lines = buf.split('\n')
             for l in lines :
                 mvp.parse_serial(l)
-     #           print l
             buf = lines[-1]
     except :
         pass
 
+
     if mvp.next_patch: 
+        error = ''
         num += 1
         if num == len(patch_names) : 
             num = 0
         mvp.patch = patch_names[num]
         patch = sys.modules[patch_names[num]]
     if mvp.prev_patch: 
+        error = ''
         num -= 1
         if num < 0 : 
             num = len(patch_names) - 1
@@ -266,16 +288,16 @@ while 1:
     
     # set patch
     if mvp.set_patch :
+        error = ''
         print "setting: " + mvp.patch
         try :
             patch = sys.modules[mvp.patch]
-            error = ''
         except KeyError:
             error = "Module " +mvp.patch+ " is not loaded, probably it has errors"
 
     # reload
-    # TODO: setup has to be called too
     if mvp.reload_patch :
+        error = ''
         # delete the old
         if mvp.patch in sys.modules:  
             del(sys.modules[mvp.patch]) 
@@ -284,56 +306,60 @@ while 1:
         patch_path = '/usbdrive/Patches/'+patch_name+'/main.py'
         try :
             patch = imp.load_source(patch_name, patch_path)
-            error = ''
             print "reloaded"
             
             # then call setup
             try :
                 patch.setup(screen, mvp)
-                error = ''
             except Exception, e:
                 error = traceback.format_exc()
         except Exception, e:
             error = traceback.format_exc()
-          #  formatted_lines = traceback.format_exc().splitlines()
-          #  print formatted_lines[-3]
-          #  print formatted_lines[-1]
     
     try :
         patch.draw(screen, mvp)
-        #error = ''
     except Exception, e:
-        #print traceback.format_exc()
         error = traceback.format_exc()
-
-
+ 
     #save frame
     if mvp.screengrab:
         filenum = 0
-        imagepath = "/usbdrive/Grabs" + str(filenum) + ".png"
+        imagepath = "/usbdrive/Grabs/" + str(filenum) + ".bmp"
+        imagepath_thumb = "/usbdrive/Grabs/" + str(filenum) + "_thumb.bmp"
         while os.path.isfile(imagepath):
             filenum += 1
-            imagepath = "/usbdrive/Grabs" + str(filenum) + ".png"
+            imagepath = "/usbdrive/Grabs/" + str(filenum) + ".bmp"
+            imagepath_thumb = "/usbdrive/Grabs/" + str(filenum) + "_thumb.bmp"
         pygame.image.save(screen,imagepath)
+        # add to the grabs array
+        #grab = screen
+        mvp.grabindex += 1
+        mvp.grabindex %= 10
+        pygame.transform.scale(screen, (128, 72), mvp.tengrabs_thumbs[mvp.grabindex] )
+        pygame.image.save(mvp.tengrabs_thumbs[mvp.grabindex],imagepath_thumb)
+        mvp.tengrabs[mvp.grabindex] = screen.copy()
         print imagepath
+   
+    #draw the main screen
+    hwscreen.blit(screen, (0,0))
     
     # osd
     if mvp.osd :
-        pygame.draw.rect(screen, OSDBG, (0, screen.get_height() - 40, screen.get_width(), 40))
+        this_time = time.time()
+        elapsed_time = this_time - last_time
+        last_time = this_time
+        osc_msgs_per_sec = osc_msgs_recv / elapsed_time
+        #osd.fill(GREEN) 
+        pygame.draw.rect(hwscreen, OSDBG, (0, hwscreen.get_height() - 40, hwscreen.get_width(), 40))
         font = pygame.font.SysFont(None, 32)
-        text = font.render(str(patch.__name__) + ', frame: ' + str(count) + ', fps: ' + str(int(fps)) + ', Auto Clear: ' + str(mvp.auto_clear), True, WHITE, OSDBG)
+        text = font.render(str(patch.__name__) + ', frame: ' + str(count) + ', fps: ' + str(int(fps)) + ', Auto Clear: ' + str(mvp.auto_clear) + ', osc: ' + str(osc_msgs_recv) + ', osc / sec: ' + str(osc_msgs_per_sec), True, WHITE, OSDBG)
         text_rect = text.get_rect()
         text_rect.x = 50
-        text_rect.centery = screen.get_height() - 20
-        screen.blit(text, text_rect)
-       
-#        if mvp.note_on :
-#            notemsg = font.render('note on', True, WHITE, OSDBG)
-#        
-#        text_rect = notemsg.get_rect()
-#        text_rect.x = screen.get_width() - 100
-#        text_rect.centery = screen.get_height() - 20
-#        screen.blit(notemsg, text_rect)
+        text_rect.centery = hwscreen.get_height() - 20
+        hwscreen.blit(text, text_rect)
+
+        for i in range(0,10) :
+            hwscreen.blit(mvp.tengrabs_thumbs[i], (128 * i,0))
 
         # osd, errors
         i = 0
@@ -342,37 +368,18 @@ while 1:
             text_rect = notemsg.get_rect()
             text_rect.x = 50
             text_rect.y = 20 + (i * 32)
-            screen.blit(errormsg, text_rect)
+            hwscreen.blit(errormsg, text_rect)
             i += 1
 
-       
-
     #clocker.tick(35)
-
-    # if knob is all the way up, it is no fade
-    #if mvp.knob5 > .95 :
-   #     screen.fill(mvp.bg_color) 
-
-    hwscreen.blit(screen, (0,0))
     pygame.display.flip()
-        #time.sleep(.01)
-
-    # do fade out thing
-    #wash_count = wash_count + 1;
-    #wash_count = wash_count % 5;
-    
-    #if wash_count == 0 :
-    #    wash.set_alpha(int(mvp.knob5 * 100))
-    #    wash.fill(mvp.bg_color)
-    #    screen.blit(wash, (0,0))
- 
 
     if mvp.quit :
         sys.exit()
     
     # clear all the events
     mvp.clear_flags()
-    #time.sleep(.01)
+    osc_msgs_recv = 0
 
 time.sleep(1)
 
