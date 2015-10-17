@@ -66,7 +66,7 @@ def render_overlay(screen) :
 
 
     # mode
-    mode_str = " Mode:  "   + str(etc.mode) + " "
+    mode_str = " Mode:  "   + str(etc.mode) + " (" + str(etc.mode_index + 1) +" of "+str(len(etc.mode_names)) + ")"
     text = font.render(mode_str, True, etc.WHITE, etc.BLACK)
     text_rect = text.get_rect()
     text_rect.x = 50
@@ -75,7 +75,7 @@ def render_overlay(screen) :
     
     # scene
     if etc.scene_set :
-        scene_str = " Scene:  " + str(etc.scene_index) +" of "+str(len(etc.scenes)) + " "
+        scene_str = " Scene:  " + str(etc.scene_index + 1) +" of "+str(len(etc.scenes)) + " "
     else:
         scene_str = " Scene: Not Set "
     text = font.render(scene_str, True, etc.WHITE, etc.BLACK)
@@ -162,12 +162,12 @@ def render_overlay(screen) :
     screen.blit(text, text_rect)
     
     # mem
-    mode_str = " FPS:  "   + str(int(etc.fps)) + " "
-    text = font.render(mode_str, True, etc.WHITE, etc.BLACK)
-    text_rect = text.get_rect()
-    text_rect.x = 790
-    text_rect.centery = 588
-    screen.blit(text, text_rect)
+   # mode_str = " FPS:  "   + str(int(etc.fps)) + " "
+   # text = font.render(mode_str, True, etc.WHITE, etc.BLACK)
+   # text_rect = text.get_rect()
+   # text_rect.x = 790
+   # text_rect.centery = 588
+   # screen.blit(text, text_rect)
     
     # version
     mode_str = " v1.0 "

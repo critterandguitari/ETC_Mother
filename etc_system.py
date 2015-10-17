@@ -163,7 +163,7 @@ class System:
         self.grabindex += 1
         self.grabindex %= 10
         pygame.transform.scale(self.screen, (128, 72), self.tengrabs_thumbs[self.grabindex] )
-        self.tengrabs[self.grabindex] = self.screen.copy()
+        self.latest_grab = self.screen.copy()
         print "grabbed " + imagepath
 
     # load modes,  check if modes are found
@@ -216,13 +216,14 @@ class System:
             print 'No grab folder, creating...'
             os.system('mkdir ' + self.GRABS_PATH)
         print 'loading recent grabs...'
-        self.tengrabs = []
+        self.latest_grab = None
         self.tengrabs_thumbs = []
         self.grabcount = 0
         self.grabindex = 0
         for i in range(0,11):
             self.tengrabs_thumbs.append(pygame.Surface((128, 72)))
-            self.tengrabs.append(pygame.Surface(self.RES ))
+        
+        self.latest_grab = pygame.Surface(self.RES )
 
         for filepath in sorted(glob.glob(self.GRABS_PATH + '*.jpg')):
             filename = os.path.basename(filepath)
@@ -231,7 +232,7 @@ class System:
             img = img.convert()
             thumb = pygame.transform.scale(img, (128, 72) )
             #TODO : ensure img is 1280 x 720, or does it matter?
-            self.tengrabs[self.grabcount]= img
+            self.latest_grab = img
             self.tengrabs_thumbs[self.grabcount] = thumb
             self.grabcount += 1
             if self.grabcount > 10: break

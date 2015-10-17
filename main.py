@@ -110,6 +110,11 @@ etc.load_scenes()
 # used to measure fps
 start = time.time()
 
+# get total memory consumed, cap at 75%
+etc.memory_used = psutil.virtual_memory()[2]
+etc.memory_used = (etc.memory_used / 75) * 100
+if (etc.memory_used > 100): etc.memory_used = 100
+
 # set initial mode
 etc.set_mode_by_index(0)
 mode = sys.modules[etc.mode]
@@ -143,14 +148,12 @@ while 1:
     # check for sound
     sound.recv()
 
-    # set the mode on which to call drawi
-    # TODO if the module is no longer in sys (like got deleted and not reloaded, this will error,
-    # so use exception
+    # set the mode on which to call draw
     try : 
         mode = sys.modules[etc.mode]
     except :
-        print "mode not loaded, probably has errors"
-        etc.error = "Mode not loaded, probably it has errors."
+        #print "mode not loaded, probably has errors"
+        etc.error = "Mode not loaded."
 
     # see if save is being held down for deleting scene
     etc.update_scene_save_key()
