@@ -81,7 +81,10 @@ class System:
     midi_pgm_last = 0
     midi_clk = 0
     midi_ch = 1
-    
+    new_midi = False
+    usb_midi_name = ''
+    usb_midi_present = False
+
     # system stuff 
     memory_used = 0
     ip = ''
@@ -440,6 +443,7 @@ class System:
         return color
 
     def clear_flags(self):
+        self.new_midi = False
         self.audio_trig = False
         self.run_setup = False
         self.screengrab_flag = False

@@ -160,8 +160,19 @@ def render_overlay(screen) :
     text_rect.x = 790
     text_rect.centery = 535
     screen.blit(text, text_rect)
+ 
+    # midi usb dev
+    if (etc.usb_midi_present) :
+        mode_str = " USB MIDI:  "   + str(etc.usb_midi_name) + " "
+    else :
+        mode_str = " USB MIDI:  None "
+    text = font.render(mode_str, True, etc.WHITE, etc.BLACK)
+    text_rect = text.get_rect()
+    text_rect.x = 790
+    text_rect.centery = 588
+    screen.blit(text, text_rect)
     
-    # mem
+    # fps
    # mode_str = " FPS:  "   + str(int(etc.fps)) + " "
    # text = font.render(mode_str, True, etc.WHITE, etc.BLACK)
    # text_rect = text.get_rect()

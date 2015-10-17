@@ -123,6 +123,8 @@ if (etc.memory_used > 100): etc.memory_used = 100
 etc.set_mode_by_index(0)
 mode = sys.modules[etc.mode]
 
+midi_led_flashing = False
+
 while 1:
     
     # check for OSC
@@ -131,8 +133,16 @@ while 1:
     # send get midi and knobs for next time
     osc.send("/nf", 1) 
 
+    # stop a midi led flash if one is hapenning
+    if (midi_led_flashing):
+        midi_led_flashing = False
+        osc.send("/led", 7)
+
     # check for midi from USB
     midi.poll() 
+    if (etc.new_midi) :
+        osc.send("/led", 2)
+        midi_led_flashing = True
 
     # get knobs, checking for override, and check for new note on
     etc.update_knobs_and_notes()
@@ -142,10 +152,10 @@ while 1:
 
     # quit on esc
     for event in pygame.event.get():
-        if event.type == QUIT:
+        if event.type == pygame.QUIT:
             exit()
-        elif event.type == KEYDOWN:
-            if event.key == K_ESCAPE:
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
                 exit()
 
     # measure fps
@@ -163,7 +173,7 @@ while 1:
         mode = sys.modules[etc.mode]
     except :
         #print "mode not loaded, probably has errors"
-        etc.error = "Mode not loaded."
+        etc.error = "Mode " + etc.mode  + " not loaded."
 
     # save a screen shot before drawing stuff
     if (etc.screengrab_flag):

@@ -18,11 +18,13 @@ def parse_midi(midi):
    
         # global message clock tick
         if (msg_status == 248) :
+            etc.new_midi = True
             etc.midi_clk += 1
             if (etc.midi_clk >= 24) : etc.midi_clk = 0
 
         # global message clock start
         if (msg_status == 250) :
+            etc.new_midi = True
             etc.midi_clk = 0
 
         # channel messages
@@ -30,6 +32,7 @@ def parse_midi(midi):
             
             # CC
             if (msg_type == 0xB) :
+                etc.new_midi = True
                 for i in range(0,5) :
                     if (midi_msg[1] == 21 + i) :
                         cc = midi_msg[2]
@@ -39,10 +42,12 @@ def parse_midi(midi):
  
             # note OFF
             if (msg_type == 0x8) :
+                etc.new_midi = True
                 etc.midi_notes[midi_msg[1]] = 0
 
             # note ON
             if (msg_type == 0x9) :
+                etc.new_midi = True
                 if (midi_msg[2] > 0) :
                     etc.midi_notes[midi_msg[1]] = 1
                 else :
@@ -50,6 +55,7 @@ def parse_midi(midi):
 
             # PGM
             if (msg_type == 0xC) :
+                etc.new_midi = True
                 pgm = midi_msg[1]
                 if (pgm != pgm_last):
                     etc.midi_pgm = pgm
@@ -67,6 +73,8 @@ def _print_device_info():
         if output:
             in_out = "(output)"
 
+        etc.usb_midi_name = name
+    
         print ("%2i: interface :%s:, name :%s:, opened :%s:  %s" %
                (i, interf, name, opened, in_out))
 
@@ -77,20 +85,24 @@ def init(etc_obj) :
 
     pygame.midi.init()
 
-    _print_device_info()
+    try :
+        _print_device_info()
 
-    input_id = pygame.midi.get_default_input_id()
+        input_id = pygame.midi.get_default_input_id()
 
-    print ("using input_id :%s:" % input_id)
-    midi_input = pygame.midi.Input( input_id )
+        print ("using input_id :%s:" % input_id)
+        midi_input = pygame.midi.Input( input_id )
+        etc.usb_midi_present = True
+    except :
+        print "no usb midi found"
+        etc.usb_midi_present = False
 
 def poll():
     global midi_input
-    if midi_input.poll():
-        midi_events = midi_input.read(100)
-        try :
-            parse_midi(midi_events)
-        except :
-            print "problem with usb midi"
-        
-
+    if (etc.usb_midi_present) :
+        if midi_input.poll():
+            midi_events = midi_input.read(100)
+            try :
+                parse_midi(midi_events)
+            except :
+                print "problem with usb midi"
