@@ -2,7 +2,6 @@ import os
 import pygame
 import time
 import random
-import fullfb
 import glob
 import mvp_system
 import imp
