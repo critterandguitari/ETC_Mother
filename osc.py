@@ -42,7 +42,13 @@ def set_callback(path, args):
     name = args[0]
     etc.set_mode_by_name(name)
     print "set patch to: " + str(etc.mode) + " with index " + str(etc.mode_index)
+ 
+def new_callback(path, args):
+    global etc
+    name = args[0]
+    etc.load_new_mode(name)
     
+   
 def reload_callback(path, args):
     global etc
     print "reloading: " + str(etc.mode)
@@ -63,7 +69,7 @@ def keys_callback(path, args) :
     k, v = args
     if (k == 2 and v > 0) : etc.next_mode()
     if (k == 1 and v > 0) : etc.prev_mode()
-    if (k == 9 and v > 0) : etc.trigger()
+    if (k == 9 and v > 0) : etc.trig = True
     if (k == 7 and v > 0) : etc.screengrab()
     if (k == 4 and v > 0) : etc.prev_scene()
     if (k == 6) : etc.save_or_delete_scene(v)
@@ -98,6 +104,7 @@ def init (etc_object) :
     osc_server.add_method("/reload", 'i', reload_callback)
   #  osc_server.add_method("/new", 's', reload_callback)
     osc_server.add_method("/set", 's', set_callback)
+    osc_server.add_method("/new", 's', new_callback)
     osc_server.add_method(None, None, fallback)
 
 def recv() :

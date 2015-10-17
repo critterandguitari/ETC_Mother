@@ -1,10 +1,13 @@
 import alsaaudio, audioop
+import time
 
 inp = None
 etc = None
+trig_this_time = 0
+trig_last_time = 0
 
 def init (etc_object) :
-    global inp, etc
+    global inp, etc, trig_this_time, trig_last_time
     etc = etc_object
     #setup alsa for sound in
     inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,alsaaudio.PCM_NONBLOCK)
@@ -12,12 +15,13 @@ def init (etc_object) :
     inp.setrate(8000)
     inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)
     inp.setperiodsize(300)
+    trig_last_time = time.time()
+    trig_this_time = time.time()
 
 def recv() :
-    global inp, etc
+    global inp, etc, trig_this_time, trig_last_time
     # get audio
     l,data = inp.read()
-    etc.trig = False
     while l:
         for i in range(0,100) :
             try :

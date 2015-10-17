@@ -76,7 +76,7 @@ for i in range(0, len(etc.mode_names)-1) :
         continue 
     try : 
         mode.setup(screen, etc)
-        osd.loading_banner(hwscreen,"Loaded " + str(etc.mode) + ". Memory used: " + str(psutil.virtual_memory()[2]) )
+        osd.loading_banner(hwscreen,"Loaded " + str(etc.mode) + "   Memory used: " + str(psutil.virtual_memory()[2]) )
     except :
         print "error in setup, or setup not found"
         continue
@@ -104,8 +104,8 @@ while 1:
     #send get midi and knobs for next time
     osc.send("/nf", 1) 
 
-    # get knobs1-5
-    etc.update_knobs()
+    # get knobs, checking for override, and check for new note on
+    etc.update_knobs_and_notes()
 
     # quit on esc
     for event in pygame.event.get():
@@ -150,7 +150,10 @@ while 1:
         except Exception, e:
             etc.error = traceback.format_exc()
             print "error with setup: " + etc.error
-    
+   
+    if etc.trig:
+        print "triggered"
+
     # draw it
     try :
         mode.draw(screen, etc)

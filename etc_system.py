@@ -51,6 +51,7 @@ class System:
     scene_index = 0
     save_key_status = False
     save_key_count = 0
+    scene_set = False
     
     # audio
     audio_in = [0] * 100
@@ -71,6 +72,7 @@ class System:
 
     # midi stuff (CC gets updated into knobs
     notes = [0] * 128
+    notes_last = [0] * 128
     midi_pgm = 0
     midi_clk = 0
 
@@ -82,6 +84,7 @@ class System:
     osd = False
 
     def set_mode_by_index (self, index) :
+        # TODO check if it exists
         self.mode_index = index
         self.mode = self.mode_names[self.mode_index]
         self.mode_root = self.MODES_PATH + self.mode + "/"
@@ -99,12 +102,14 @@ class System:
         if self.mode_index >= len(self.mode_names) : 
             self.mode_index = 0
         self.set_mode_by_index(self.mode_index)
+        self.scene_set = False
 
     def prev_mode (self) :
         self.mode_index -= 1
         if self.mode_index < 0 : 
             self.mode_index = len(self.mode_names) - 1
         self.set_mode_by_index(self.mode_index)
+        self.scene_set = False
 
     def override_all_knobs(self) :
         for i in range(0,5):
@@ -117,12 +122,13 @@ class System:
         self.knob[i] = v
 
     # then do this for the modes 
-    def update_knobs(self) :
+    def update_knobs_and_notes(self) :
         for i in range(0, 5) :
             if self.knob_override[i] :
                 if abs(self.knob_snapshot[i] - self.knob_hardware[i]) > .05 :
                     self.knob_override[i] = False
                     self.knob[i] = self.knob_hardware[i]
+                    self.scene_set = False
             else : 
                 self.knob[i] = self.knob_hardware[i]
 
@@ -132,6 +138,11 @@ class System:
         self.knob3 = self.knob[2]
         self.knob4 = self.knob[3]
         self.knob5 = self.knob[4]
+
+        # check for new notes
+        for i in range(0, 128):
+            if self.notes[i] > 0 and self.notes_last[i] == 0:
+                self.trig = True
 
     # save a screenshot
     def screengrab(self):
@@ -165,7 +176,19 @@ class System:
             except Exception, e:
                 print traceback.format_exc()
         return got_a_mode
- 
+
+    # load a new mode (created from web editor)
+    def load_new_mode(self, new_mode) :
+        print "loadeing new mode "+new_mode+"..."
+        mode_path = self.MODES_PATH+new_mode+'/main.py'
+        try :
+            imp.load_source(new_mode, mode_path)
+            self.mode_names.append(new_mode)
+        except Exception, e:
+            print traceback.format_exc()
+        self.set_mode_by_name(new_mode)
+        self.run_setup
+    
     # reload mode module
     def reload_mode(self) :
         # delete the old, and reload
@@ -303,6 +326,7 @@ class System:
             self.knob[4] = scene[5]
             self.auto_clear = scene[6]
             self.set_mode_by_name(scene[0])
+            self.scene_set = True
         except :
             print "probably no scenes"
 
@@ -376,5 +400,8 @@ class System:
     def clear_flags(self):
         self.trig = False
         self.run_setup = False
+        for i in range(0, 128):
+            self.notes_last[i] = self.notes[i]
+
 
 
