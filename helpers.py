@@ -1,4 +1,3 @@
-import glob
 import os
 
 def get_immediate_subdirectories(dir):

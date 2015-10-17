@@ -6,6 +6,7 @@ import traceback
 import imp
 import os
 import glob
+import sys
 import helpers
 
 class System:
@@ -15,6 +16,7 @@ class System:
 
     RES =  (1280,720)
 
+    # this is just an alias to the screen in main loop
     screen = None
 
     fps = 0
@@ -40,6 +42,7 @@ class System:
     mode = ''
     mode_root = ''
     error = ''
+    run_setup = False
     
     # audio
     audio_in = [0] * 100
@@ -68,7 +71,6 @@ class System:
     bg_color = (0, 0, 0)
     quit = False
     osd = False
-    reload_mode = False
 
     def set_mode_by_name (self, new_mode) :
         pass
@@ -140,13 +142,27 @@ class System:
             print mode_path
             try :
                 imp.load_source(mode_name, mode_path)
-                got_a_mode = True
                 self.mode_names.append(mode_name)
+                got_a_mode = True
             except Exception, e:
                 print traceback.format_exc()
-        
         return got_a_mode
-
+ 
+    # reload mode module
+    def reload_mode(self) :
+        # delete the old, and reload
+        if self.mode in sys.modules:  
+            del(sys.modules[self.mode]) 
+        print "deleted module, reloading"
+        try :
+            imp.load_source(self.mode, self.mode_root+'/main.py')
+            print "reloaded"
+            # then call setup
+        except Exception, e:
+            self.error = traceback.format_exc()
+            print "error reloading: " + self.error
+        self.run_setup = True # set a flag so setup gets run from main loop
+    
     # recent grabs, first check if Grabs folder is available, create if not
     def load_grabs(self):
         if not(os.path.isdir(self.GRABS_PATH)) :
@@ -321,19 +337,7 @@ class System:
             self.set_mode = True
 
     def clear_flags(self):
-        self.clear_screen = False
-        self.note_on = False
-        self.note_off = False
-        self.quarter_note = False
-        self.eighth_note = False
-        self.eighth_note_triplet = False
-        self.sixteenth_note = False
-        self.thirtysecond_note = False
-        self.half_note = False
-        self.whole_note = False
-        self.set_mode = False
-        self.reload_mode = False
-        self.aux_button = False
         self.trig = False
+        self.run_setup = False
 
 

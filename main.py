@@ -1,13 +1,10 @@
-import os
 import pygame
 import time
 import etc_system
-import imp
-import socket
 import traceback
 import sys
 import psutil
-from pygame.locals import *
+#from pygame.locals import *
 import osc
 import sound
 import osd
@@ -17,16 +14,12 @@ print "starting..."
 # create etc object
 # this holds all the data (mode and preset names, knob values, midi input, sound input, current states, etc...)
 # it gets passed to the modes which use the audio midi and knob values
-# it gets operated on by the below modules (sound, OSC, file management, etc...)
 etc = etc_system.System()
 
 # just to make sure
 etc.clear_flags()
 
-# get our ip
-etc.ip = socket.gethostbyname(socket.gethostname())
-
-# setup osc
+# setup osc and callbacks
 osc.init(etc)
 
 # setup alsa sound
@@ -129,33 +122,19 @@ while 1:
 # so use exception
     mode = sys.modules[etc.mode]
 
-    if etc.clear_screen:
-        screen.fill(etc.bg_color) 
-
     if etc.auto_clear :
         screen.fill(etc.bg_color) 
 
     etc.bg_color =  etc.color_picker_bg()
     
-    # reload mode
-    if etc.reload_mode :
+    # run setup (usually if the mode was reloaded)
+    if etc.run_setup :
         etc.error = ''
-        # delete the old, and reload
-        if etc.mode in sys.modules:  
-            del(sys.modules[etc.mode]) 
-        print "deleted module, reloading"
         try :
-            mode = imp.load_source(etc.mode, etc.mode_root+'/main.py')
-            print "reloaded"
-            # then call setup
-            try :
-                mode.setup(screen, etc)
-            except Exception, e:
-                etc.error = traceback.format_exc()
-                print "error with setup: " + etc.error
+            mode.setup(screen, etc)
         except Exception, e:
             etc.error = traceback.format_exc()
-            print "error reloading: " + etc.error
+            print "error with setup: " + etc.error
     
     # draw it
     try :

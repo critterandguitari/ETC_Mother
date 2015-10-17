@@ -38,8 +38,7 @@ def set_callback(path, args):
 def reload_callback(path, args):
     global etc
     print "reloading: " + str(etc.mode)
-    etc.reload_mode = True
-    
+    etc.reload_mode()
 
 def knobs_callback(path, args):
     global etc
