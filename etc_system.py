@@ -111,6 +111,11 @@ class System:
             self.knob_override[i] = True
             self.knob_snapshot[i] = self.knob_hardware[i]
     
+    def cc_override_knob(self, i, v) :
+        self.knob_override[i] = True
+        self.knob_snapshot[i] = self.knob_hardware[i]
+        self.knob[i] = v
+
     # then do this for the modes 
     def update_knobs(self) :
         for i in range(0, 5) :
@@ -170,7 +175,6 @@ class System:
         try :
             imp.load_source(self.mode, self.mode_root+'/main.py')
             print "reloaded"
-            # then call setup
         except Exception, e:
             self.error = traceback.format_exc()
             print "error reloading: " + self.error

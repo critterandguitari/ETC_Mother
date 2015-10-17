@@ -65,16 +65,21 @@ if not (etc.load_modes()) :
         time.sleep(1)
 
 # run setup functions if modes have them
+print "running setup..."
 for i in range(0, len(etc.mode_names)-1) :
+    print etc.mode_root
     try :
         etc.set_mode_by_index(i)
         mode = sys.modules[etc.mode]
-        print etc.mode_root
+    except AttributeError :
+        print "mode not found, probably has error"
+        continue 
+    try : 
         mode.setup(screen, etc)
         osd.loading_banner(hwscreen,"Loaded " + str(etc.mode) + ". Memory used: " + str(psutil.virtual_memory()[2]) )
-    except AttributeError :
-        print "no setup found"
-        continue 
+    except :
+        print "error in setup, or setup not found"
+        continue
 
 # load screen grabs
 etc.load_grabs()
@@ -123,7 +128,11 @@ while 1:
     # set the mode on which to call drawi
     # TODO if the module is no longer in sys (like got deleted and not reloaded, this will error,
     # so use exception
-    mode = sys.modules[etc.mode]
+    try : 
+        mode = sys.modules[etc.mode]
+    except :
+        print "mode not loaded, probably has errors"
+        etc.error = "Mode not loaded, probably it has errors."
 
     # see if save is being held down for deleting scene
     etc.update_scene_save_key()

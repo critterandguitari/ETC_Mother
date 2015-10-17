@@ -5,19 +5,27 @@ etc = None
 osc_server = None
 osc_target = None
 
+cc_last = [0] * 5
+
 # OSC callbacks
 def fallback(path, args):
     pass
 
 def mblob_callback(path, args):
-    global etc
+    global etc, cc_last
     midi_blob = args[0]
     #print "received message: " + str(args)
-#    etc.update_knob(0, float(midi_blob[16]) / 127)
-#    etc.update_knob(1, float(midi_blob[17]) / 127)
-#    etc.update_knob(2, float(midi_blob[18]) / 127)
-#    etc.update_knob(3, float(midi_blob[19]) / 127)
-#    etc.update_knob(4, float(midi_blob[20]) / 127)
+    for i in range(0, 5) :
+        cc = midi_blob[16 + i]
+        if cc != cc_last[i] :
+            etc.cc_override_knob(i, float(cc) / 127)
+            cc_last[i] = cc
+            
+    #etc.cc_override_knob(0, float(midi_blob[16]) / 127)
+    #etc.cc_override_knob(1, float(midi_blob[17]) / 127)
+    #etc.cc_override_knob(2, float(midi_blob[18]) / 127)
+    #etc.cc_override_knob(3, float(midi_blob[19]) / 127)
+    #etc.cc_override_knob(4, float(midi_blob[20]) / 127)
     etc.midi_clk = midi_blob[21] 
     etc.midi_pgm = midi_blob[22]
     
