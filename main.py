@@ -1,154 +1,57 @@
 import os
 import pygame
 import time
-import random
 import glob
 import etc_system
 import imp
 import socket
 import traceback
 import sys
-import liblo
 import psutil
 from pygame.locals import *
-import alsaaudio, audioop
+import osc
+import sound
+import filer
 
-GRABS_PATH = "/usbdrive/Grabs/"
-MODES_PATH = "/usbdrive/Modes/"
-
-#create etc object
+# create etc object
+# this holds all the data (mode and preset names, knob values, midi input, sound input, current states, etc...)
+# it gets passed to the modes which use the midi and knob values
+# it gets operated on by the below modules (sound, OSC, file management, etc...)
 etc = etc_system.System()
+
+# just to make sure
 etc.clear_flags()
 
 # get our ip
 etc.ip = socket.gethostbyname(socket.gethostname())
 
-# OSC init
-try:
-    osc_target = liblo.Address(4001)
-except liblo.AddressError as err:
-    print(err)
-    sys.exit()
+# setup osc
+osc.init(etc)
 
-try:
-    osc_server = liblo.Server(4000)
-except liblo.ServerError, err:
-    print str(err)
-    sys.exit()
+# setup alsa sound
+sound.init(etc)
 
-osc_msgs_recv = 0
+# setup file manager
+filer.init(etc)
 
-def fallback(path, args):
-    global osc_msgs_recv
-    osc_msgs_recv += 1
-
-def knobs_callback(path, args):
-    global osc_msgs_recv
-    osc_msgs_recv += 1
-    global etc
-    k1, k2, k3, k4, k5, k6 = args
-    etc.knob1l = float(k4) / 1023
-    etc.knob2l = float(k1) / 1023
-    etc.knob3l = float(k2) / 1023
-    etc.knob4l = float(k5) / 1023
-    etc.knob5l = float(k3) / 1023
-
-def keys_callback(path, args) :
-    global osc_msgs_recv
-    osc_msgs_recv += 1
-    global etc
-    k, v = args
-    if (k == 2 and v > 0) : etc.next_mode = True
-    if (k == 1 and v > 0) : etc.prev_mode = True
-    if (k == 9 and v > 0) : etc.clear_screen = True
-    if (k == 7 and v > 0) : etc.screengrab = True
-    if (k == 4 and v > 0) : etc.prev_preset()
-    if (k == 6 and v > 0) : etc.save_preset()
-    if (k == 5 and v > 0) : etc.next_preset()
-    if (k == 3 and v > 0) : 
-        if (etc.osd) : etc.osd = False
-        else : etc.osd = True
-    if (k == 8 and v > 0) : 
-        if (etc.auto_clear) : etc.auto_clear = False
-        else : etc.auto_clear = True
-
-    print str(k) + " " + str(v)
-
-def midi_note_on_callback(path, args):
-    global osc_msgs_recv
-    osc_msgs_recv += 1
-    global etc
-    c, n, v = args
-    etc.note_on = True
-    etc.note_num = n
-    etc.note_velocity = v
-    #print n
-
-def midi_cc_callback(path, args):
-    global osc_msgs_recv
-    osc_msgs_recv += 1
-    global etc
-    c, n, v = args
-
-    if n == 21 :
-        etc.knob1l = float(v) / 127
-    if n == 22 :
-        etc.knob2l = float(v) / 127
-    if n == 23 :
-        etc.knob3l = float(v) / 127
-    if n == 24 :
-        etc.knob4l = float(v) / 127
-    if n == 25 :
-        etc.knob5l = float(v) / 127
-#    print args
-
-
-osc_server.add_method("/knobs", 'iiiiii', knobs_callback)
-osc_server.add_method("/key", 'ii', keys_callback)
-osc_server.add_method("/mnon", 'iii', midi_note_on_callback)
-osc_server.add_method("/mcc", 'iii', midi_cc_callback)
-osc_server.add_method("/setPatch", 's', midi_cc_callback)
-osc_server.add_method(None, None, fallback)
-
-#setup alsa for sound in
-inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,alsaaudio.PCM_NONBLOCK)
-inp.setchannels(1)
-inp.setrate(8000)
-inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)
-inp.setperiodsize(300)
-
+# init pygame
 pygame.init()
-
-# set up the colors
-BLACK = (0, 0, 0)
-WHITE = (255, 255, 255)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (0, 0, 255)
-OSDBG = (0,0,255)
 
 # OSD stuff
 font = pygame.font.SysFont(None, 32)
-notemsg = font.render('...', True, WHITE, OSDBG)
-
-# setup a UDP socket for recivinng data from other programs
-UDP_IP = "127.0.0.1"
-UDP_PORT = 5005
-sock = socket.socket(socket.AF_INET, # Internet
-                     socket.SOCK_DGRAM) # UDP
-sock.bind((UDP_IP, UDP_PORT))
-sock.setblocking(0)
+notemsg = font.render('...', True, etc.WHITE, etc.OSDBG)
 
 # init fb and main surfaces
 print "opening frame buffer"
-hwscreen = pygame.display.set_mode((1280,720),  pygame.FULLSCREEN | pygame.DOUBLEBUF, 32  )
+hwscreen = pygame.display.set_mode(etc.RES,  pygame.FULLSCREEN | pygame.DOUBLEBUF, 32  )
 screen = pygame.Surface(hwscreen.get_size())
 screen.fill((40,40,40)) 
 hwscreen.blit(screen, (0,0))
 pygame.display.flip()
 hwscreen.blit(screen, (0,0))
 pygame.display.flip()
-liblo.send(osc_target, "/led", 7) # running
+#liblo.send(osc_target, "/led", 7) # running
+osc.send("/led", 5)
 time.sleep(3)
 
 # loading banner helper
@@ -156,39 +59,29 @@ def loading_banner(stuff) :
     global hwscreen
     screen.fill((40,40,40)) 
     font = pygame.font.SysFont(None, 40)
-    text = font.render(stuff, True, WHITE, (40,40,40))
+    text = font.render(stuff, True, etc.WHITE, (40,40,40))
     text_rect = text.get_rect()
     text_rect.x = 20
     text_rect.y = 20
     hwscreen.blit(text, text_rect)
     pygame.display.flip()
 
-
-# directory helper
-def get_immediate_subdirectories(dir):
-    if os.path.isdir(dir):
-        return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]  
-    else :
-        return []
-
 # load modes,  check if modes are found
 print "loading modes..."
 got_a_mode = False
-mode_names = []
-mode_folders = get_immediate_subdirectories(MODES_PATH)
+mode_folders = filer.get_immediate_subdirectories(etc.MODES_PATH)
 
 for mode_folder in mode_folders :
     mode_name = str(mode_folder)
-    mode_path = MODES_PATH+mode_name+'/main.py'
+    mode_path = etc.MODES_PATH+mode_name+'/main.py'
     print mode_path
     try :
         imp.load_source(mode_name, mode_path)
         got_a_mode = True
-        mode_names.append(mode_name)
+        etc.mode_names.append(mode_name)
     except Exception, e:
         print traceback.format_exc()
 
-#if not(os.path.isdir(MODES_PATH)) :
 if not(got_a_mode) :
     print "no modes found."
     loading_banner("No Modes found.  Insert USB drive with Modes folder and restart.")
@@ -202,49 +95,24 @@ if not(got_a_mode) :
                     exit()
         time.sleep(1)
 
-
 # set initial mode
-num = 0
-etc.mode = mode_names[num]
-mode = sys.modules[mode_names[num]]
+etc.cur_mode_index = 0
+etc.mode = etc.mode_names[etc.cur_mode_index]
+mode = sys.modules[etc.mode]
 
 # run setup functions if modees have them
-for mode_name in mode_names :
+for mode_name in etc.mode_names :
     try :
         loading_banner("Loading " + str(mode_name) + ". Memory used: " + str(psutil.virtual_memory()[2]) )
         mode = sys.modules[mode_name]
-        etc.mode_root = MODES_PATH + mode_name + "/"
+        etc.mode_root = etc.MODES_PATH + mode_name + "/"
         print etc.mode_root
         mode.setup(screen, etc)
     except AttributeError :
         print "no setup found"
         continue 
 
-# recent grabs, first check if Grabs folder is available, create if not
-
-if not(os.path.isdir(GRABS_PATH)) :
-    print 'No grab folder, creating...'
-    os.system('mkdir ' + GRABS_PATH)
-print 'loading recent grabs...'
-etc.tengrabs = []
-etc.tengrabs_thumbs = []
-etc.grabcount = 0
-etc.grabindex = 0
-for i in range(0,11):
-    etc.tengrabs_thumbs.append(pygame.Surface((128, 72)))
-    etc.tengrabs.append(pygame.Surface(hwscreen.get_size()))
-
-for filepath in sorted(glob.glob(GRABS_PATH + '*.jpg')):
-    filename = os.path.basename(filepath)
-    print 'loading grab: ' + filename
-    img = pygame.image.load(filepath)
-    img = img.convert()
-    thumb = pygame.transform.scale(img, (128, 72) )
-    #TODO : ensure img is 1280 x 720, or does it matter?
-    etc.tengrabs[etc.grabcount]= img
-    etc.tengrabs_thumbs[etc.grabcount] = thumb
-    etc.grabcount += 1
-    if etc.grabcount > 10: break
+filer.load_grabs()
 
 buf = ''
 line = ''
@@ -265,9 +133,7 @@ trig_this_time = 0
 while 1:
     
     #check for OSC
-    while (osc_server.recv(1)):
-        pass
-    #osc_server.recv(0)
+    osc.recv()
 
     # get knobs from hardware or preset
     etc.update_knobs()
@@ -287,42 +153,12 @@ while 1:
         fps = 1 / ((now - start) / 50)
         start = now
 
-    # get audio
-    l,data = inp.read()
-    etc.trig = False
-    while l:
-        for i in range(0,100) :
-            try :
-                avg = audioop.getsample(data, 2, i * 3)
-                avg += audioop.getsample(data, 2, (i * 3) + 1)
-                avg += audioop.getsample(data, 2, (i * 3) + 2)
-                avg = avg / 3
-                if (avg > 20000) :
-                    trig_this_time = time.time()
-                    if (trig_this_time - trig_last_time) > .05:
-                        etc.trig = True
-                        trig_last_time = trig_this_time
-                etc.audio_in[i] = avg
-            except :
-                pass
-        l,data = inp.read()
+    # check for sound
+    sound.recv()
 
-    if etc.next_mode: 
+    if etc.refresh_mode:
         error = ''
-        num += 1
-        if num == len(mode_names) : 
-            num = 0
-        etc.mode = mode_names[num]
-        etc.mode_root = MODES_PATH + etc.mode + "/"
-        mode = sys.modules[mode_names[num]]
-    if etc.prev_mode: 
-        error = ''
-        num -= 1
-        if num < 0 : 
-            num = len(mode_names) - 1
-        etc.mode = mode_names[num]
-        etc.mode_root = MODES_PATH + etc.mode + "/"
-        mode = sys.modules[mode_names[num]]
+        mode = sys.modules[etc.mode]
 
     if etc.clear_screen:
         screen.fill(etc.bg_color) 
@@ -333,39 +169,38 @@ while 1:
     etc.bg_color =  etc.color_picker_bg()
     
     # set mode
-    if etc.set_mode :
-        error = ''
-        print "setting: " + etc.mode
-        try :
-            etc.mode_root = MODES_PATH + etc.mode + "/"
-            mode = sys.modules[etc.mode]
-        except KeyError:
-            error = "Module " +etc.mode+ " is not loaded, probably it has errors"
+    #if etc.set_mode :
+    #    error = ''
+    #    print "setting: " + etc.mode
+    #    try :
+    #        etc.mode_root = MODES_PATH + etc.mode + "/"
+    #        mode = sys.modules[etc.mode]
+    #    except KeyError:
+    #        error = "Module " +etc.mode+ " is not loaded, probably it has errors"
 
     # reload
-    if etc.reload_mode :
-        error = ''
-        # delete the old
-        if etc.mode in sys.modules:  
-            del(sys.modules[etc.mode]) 
-        print "deleted module, reloading"
-        mode_name = etc.mode
-        mode_path = MODES_PATH+mode_name+'/main.py'
-        try :
-            mode = imp.load_source(mode_name, mode_path)
-            print "reloaded"
+    #if etc.reload_mode :
+    #    error = ''
+    #    # delete the old
+    #    if etc.mode in sys.modules:  
+    #        del(sys.modules[etc.mode]) 
+    #    print "deleted module, reloading"
+    #    mode_name = etc.mode
+    #    mode_path = MODES_PATH+mode_name+'/main.py'
+    #    try :
+    #        mode = imp.load_source(mode_name, mode_path)
+    #        print "reloaded"
             
             # then call setup
-            try :
-                etc.mode_root = MODES_PATH + mode_name + "/"
-                mode.setup(screen, etc)
-            except Exception, e:
-                error = traceback.format_exc()
-        except Exception, e:
-            error = traceback.format_exc()
+     #       try :
+     #           etc.mode_root = MODES_PATH + mode_name + "/"
+     #           mode.setup(screen, etc)
+     #       except Exception, e:
+     #           error = traceback.format_exc()
+     #   except Exception, e:
+     #       error = traceback.format_exc()
     
     try :
-        etc.mode_root = MODES_PATH + mode_name + "/"
         mode.draw(screen, etc)
     except Exception, e:
         error = traceback.format_exc()
@@ -373,11 +208,10 @@ while 1:
     #save frame
     if etc.screengrab:
         filenum = 0
-        imagepath = GRABS_PATH + str(filenum) + ".jpg"
-        imagepath_thumb = GRABS_PATH + str(filenum) + "_thumb.jpg"
+        imagepath = etc.GRABS_PATH + str(filenum) + ".jpg"
         while os.path.isfile(imagepath):
             filenum += 1
-            imagepath = GRABS_PATH + str(filenum) + ".jpg"
+            imagepath = etc.GRABS_PATH + str(filenum) + ".jpg"
         pygame.image.save(screen,imagepath)
         # add to the grabs array
         #grab = screen
@@ -434,3 +268,4 @@ time.sleep(1)
 
 
 print "Quit"
+

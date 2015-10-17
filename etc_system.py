@@ -4,103 +4,105 @@ import math
 
 class System:
 
+    GRABS_PATH = "/usbdrive/Grabs/"
+    MODES_PATH = "/usbdrive/Modes/"
+
+    RES =  (1280,720)
+
+    # set up the colors
+    BLACK = (0, 0, 0)
+    WHITE = (255, 255, 255)
+    RED = (255, 0, 0)
+    GREEN = (0, 255, 0)
+    BLUE = (0, 0, 255)
+    OSDBG = (0,0,255)
+
+
     # screen grabs
     tengrabs = []
     tengrabs_thumbs = []
     grabcount = 0
     grabindex = 0
 
+    # modes
+    mode_names = []
+    cur_mode_index = 0
+    mode = ''
+    mode_root = ''
+    refresh_mode = False
+    
+    audio_in = [0] * 100
+    
 
-    ip = ''
-
-    # TODO  fix this knob shit up
-
-    # knobs used by mode (either preset or live)
+    # knobs used by mode 
     knob1 = .200
     knob2 = .200
     knob3 = .200
     knob4 = .200
     knob5 = .200
+   
+    # knob values used internally
+    knob = [.2] * 5
+    knob_snapshot = [.2] * 5
+    knob_override = [False] * 5
 
-    # live knobs vals
-    knob1l = .200
-    knob2l = .200
-    knob3l = .200
-    knob4l = .200
-    knob5l = .200
-
-    # snapshot of live knobs
-    knob1s = .200
-    knob2s = .200
-    knob3s = .200
-    knob4s = .200
-    knob5s = .200
-
-    # preset knob vals
-    knob1s = .200
-    knob2s = .200
-    knob3s = .200
-    knob4s = .200
-    knob5s = .200
-
-    # if a knob is locked
-    knob1lock = False
-    knob2lock = False
-    knob3lock = False
-    knob4lock = False
-    knob5lock = False
-
-
-    clear_screen = False
+    # midi stuff
     midi_clk = False
     midi_start = False
     midi_stop = False
     midi_clk_count = 0
     
-    audio_in = [0] * 100
-
-    quarter_note = False
-    eighth_note = False
-    eighth_note_triplet = False
-    sixteenth_note = False
-    thirtysecond_note = False
-
-    half_note = False
-    whole_note = False
-
-    midi_clk_count = 0
-    whole_note_count = 0
 
     note_on = False
     note_off = False
     note_ch = 1
     note_velocity = 0
     note_num = 60
-
+    
+    ip = ''
     trig = False
-
-    aux_button = False
     screengrab = False
     auto_clear = True
-
     bg_color = (0, 0, 0)
-
-    next_mode = False
-    prev_mode = False
     set_mode = False
     reload_mode = False
-    mode = ''
-    mode_root = ''
     preset_index = 0
-
     quit = False
-
     osd = False
-  
-    brightness = 1
-   
-    def color_picker( self ):
 
+    def next_mode (self) :
+        self.cur_mode_index += 1
+        if self.cur_mode_index == len(self.mode_names) : 
+            self.cur_mode_index = 0
+        self.mode = self.mode_names[self.cur_mode_index]
+        #TODO, make sure to update mode_root too
+        #self.mode_root = MODES_PATH + etc.mode + "/"
+        self.refresh_mode = True
+
+
+    def prev_mode (self) :
+        pass
+
+    def set_mode (self, new_mode) :
+        pass
+
+    def update_knob (self, index, val) :
+        if self.knob_override[index] :
+            if abs(self.knob_snapshot[index] - val) > .05 :
+                self.knob_override[index] = False
+                self.knob[index] = val
+        else : 
+            self.knob[index] = val
+
+    # then do this for the modes 
+    def update_knobs(self) :
+        self.knob1 = self.knob[0]
+        self.knob2 = self.knob[1]
+        self.knob3 = self.knob[2]
+        self.knob4 = self.knob[3]
+        self.knob5 = self.knob[4]
+
+    def color_picker( self ):
         # convert knob to 0-1
         c = float(self.knob4)
 
@@ -141,8 +143,6 @@ class System:
             r = math.sin(c * 2 * math.pi) * .5 + .5
             g = math.sin(c * 4 * math.pi) * .5 + .5
             b = math.sin(c * 8 * math.pi) * .5 + .5
-
-
             color = (r * 255,g * 255,b * 255)
         # full ranoms
         if c > .96 :
@@ -154,14 +154,10 @@ class System:
             b = random.randrange(0, 2) * 255
             color = (r,g,b)
         
-        color2 = (color[0] * self.brightness, color[1] * self.brightness, color[2] * self.brightness)
+        color2 = (color[0], color[1], color[2])
         return color2
  
-
-  
     def color_picker_bg( self ):
-
-    
         c = self.knob5
         # all the way down random bw
         rando = random.randrange(0, 2)
@@ -209,146 +205,32 @@ class System:
         self.bg_color = color
         return color
  
-
-
-
-    def parse_serial(self, line):
-        array = line.split(',')
-        #print array
-        if len (array) == 1:
-            if array[0] == "aux": 
-                self.aux_button = True
-  
-        if len (array) == 1:
-            if array[0] == "osd": 
-                if self.osd :
-                    self.osd = False
-                else :
-                    self.osd = True
-  
-        if len (array) == 1:
-            if array[0] == "quit": 
-                self.quit = True
-  
-        if len (array) == 1:
-            if array[0] == "sd": 
-                self.quit = True
-  
-        if len (array) == 1:
-            if array[0] == "rst": 
-                self.reload_mode = True
-   
-        if len (array) == 1:
-            if array[0] == "rlp": 
-                self.reload_mode = True
- 
-        if len (array) == 1:
-            if array[0] == "cs": 
-                self.clear_screen = True
-  
-        if len (array) == 1:
-            if array[0] == "screengrab": 
-                self.screengrab = True
-
-        # basic parse sd key (this is supposed to be mapped to shutdowh -h now)
-        if len (array) == 1:
-            if array[0] == "sd": 
-                self.clear_screen = True
-      
-        if len(array) == 1:
-            if array[0] == "np" :
-                print 'np'
-                self.next_mode = True
-       
-        if len(array) == 1:
-            if array[0] == "pp" :
-                print 'pp'
-                self.prev_mode = True
-   
-        if len(array) == 1:
-            if array[0] == "spre" :
-                self.save_preset()
- 
-        if len(array) == 1:
-            if array[0] == "npre" :
-                self.next_preset()
- 
-        if len(array) == 1:
-            if array[0] == "ppre" :
-                self.prev_preset()
- 
-
-
         # basic midi start
-        if len(array) == 1:
-            if array[0] == "ms" :
-                self.midi_start = True
-                self.midi_clk_count = 0
-                self.whole_note_count = 0
+  #      if len(array) == 1:
+  #          if array[0] == "ms" :
+  #              self.midi_start = True
+  #              self.midi_clk_count = 0
+  #              self.whole_note_count = 0
         
-        # basic midi syn
-        if len(array) == 1:
-            if array[0] == "my" :
-#                print self.midi_clk_count
-                self.clk = True
-                
-                if self.whole_note_count == 0: self.whole_note = True
-                if (self.whole_note_count % 48) == 0: self.half_note = True
+  #      # basic midi syn
+  #      if len(array) == 1:
+  #          if array[0] == "my" :
+  #              self.clk = True
+  #              
+  #              if self.whole_note_count == 0: self.whole_note = True
+  #              if (self.whole_note_count % 48) == 0: self.half_note = True
+#
+ #               if self.midi_clk_count == 0 : self.quarter_note = True
+ #               if (self.midi_clk_count % 12) == 0 : self.eighth_note = True
+ #               if (self.midi_clk_count % 8) == 0 : self.eighth_note_triplet = True
+ #               if (self.midi_clk_count % 6) == 0 : self.sixteenth_note = True
+ #               if (self.midi_clk_count % 3) == 0 : self.thirty_triplet = True
 
-                if self.midi_clk_count == 0 : self.quarter_note = True
-                if (self.midi_clk_count % 12) == 0 : self.eighth_note = True
-                if (self.midi_clk_count % 8) == 0 : self.eighth_note_triplet = True
-                if (self.midi_clk_count % 6) == 0 : self.sixteenth_note = True
-                if (self.midi_clk_count % 3) == 0 : self.thirty_triplet = True
+ #               self.midi_clk_count += 1
+ #               if self.midi_clk_count == 24 : self.midi_clk_count = 0
 
-                self.midi_clk_count += 1
-                if self.midi_clk_count == 24 : self.midi_clk_count = 0
-
-                self.whole_note_count += 1
-                if self.whole_note_count == 96 : self.midi_clk_count = 0
-
-        if len(array) == 2 :
-            if array[0] == "setmode" :
-                self.set_mode = True
-                self.mode = array[1]
-
-
-        # basic parse of knob array
-        if len(array) == 5 :
-            if array[0] == "k" :
-                if array[1].isdigit() :
-                    self.knob1 = int(array[1])
-                if array[2].isdigit() :
-                    self.knob2 = int(array[2])
-                if array[3].isdigit() :
-                    self.knob3 = int(array[3])
-                if array[4].isdigit() :
-                    self.knob4 = int(array[4])
-      
-        # basic parse note on command
-        if len(array) == 4:
-            if array[0] == "no" :
-                self.note_on = True
-                if array[1].isdigit() :
-                    self.note_ch = int(array[1])
-                if array[2].isdigit() :
-                    self.note_note = int(array[2])
-                if array[3].isdigit() :
-                    self.note_velocity = int(array[3])
- 
-        # basic parse note off command
-        if len(array) == 4:
-            if array[0] == "nf" :
-                self.note_off = True
-                if array[1].isdigit() :
-                    self.note_ch = int(array[1])
-                if array[2].isdigit() :
-                    self.note_note = int(array[2])
-                if array[3].isdigit() :
-                    self.note_velocity = int(array[3])
-
- 
-
+ #               self.whole_note_count += 1
+ #               if self.whole_note_count == 96 : self.midi_clk_count = 0
 
     def save_preset(self):
         print "saving preset"
@@ -385,13 +267,6 @@ class System:
             self.knob3s = self.knob3l
             self.knob4s = self.knob4l 
             self.knob5s = self.knob5l 
-            
-            # update preset vals
-            self.knob1p = float(array[1])
-            self.knob2p = float(array[2])
-            self.knob3p = float(array[3])
-            self.knob4p = float(array[4])
-            self.knob5p = float(array[5])
 
             # then lock em, if they locked we'll use the preset value
             self.knob1lock = self.knob2lock = self.knob3lock = self.knob4lock = self.knob5lock = True
@@ -401,53 +276,7 @@ class System:
                 self.auto_clear = True
             self.set_mode = True
 
-
-    # TODO  fix this,  what the hell!!!!
-    def update_knobs(self) :
-        if self.knob1lock :
-            if abs(self.knob1s - self.knob1l) > .05 :
-                self.knob1lock = False
-                self.knob1 = self.knob1l
-            else : 
-                self.knob1 = self.knob1p
-        else :
-            self.knob1 = self.knob1l
-        if self.knob2lock :
-            if abs(self.knob2s - self.knob2l) > .05 :
-                self.knob2lock = False
-                self.knob2 = self.knob2l
-            else : 
-                self.knob2 = self.knob2p
-        else :
-            self.knob2 = self.knob2l
-        if self.knob3lock :
-            if abs(self.knob3s - self.knob3l) > .05 :
-                self.knob3lock = False
-                self.knob3 = self.knob3l
-            else : 
-                self.knob3 = self.knob3p
-        else :
-            self.knob3 = self.knob3l
-        if self.knob4lock :
-            if abs(self.knob4s - self.knob4l) > .05 :
-                self.knob4lock = False
-                self.knob4 = self.knob4l
-            else : 
-                self.knob4 = self.knob4p
-        else :
-            self.knob4 = self.knob4l
-        if self.knob5lock :
-            if abs(self.knob5s - self.knob5l) > .05 :
-                self.knob5lock = False
-                self.knob5 = self.knob5l
-            else : 
-                self.knob5 = self.knob5p
-        else :
-            self.knob5 = self.knob5l
-
     def clear_flags(self):
-        self.next_mode = False
-        self.prev_mode = False
         self.clear_screen = False
         self.note_on = False
         self.note_off = False
@@ -458,12 +287,11 @@ class System:
         self.thirtysecond_note = False
         self.half_note = False
         self.whole_note = False
-        self.next_mode = False
         self.set_mode = False
         self.reload_mode = False
         self.aux_button = False
         self.screengrab = False
         self.trig = False
-
+        self.refresh_mode = False
 
 
