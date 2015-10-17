@@ -75,6 +75,8 @@ class System:
     note_velocity = 0
     note_num = 60
 
+    trig = False
+
     aux_button = False
     screengrab = False
     auto_clear = True
@@ -459,6 +461,7 @@ class System:
         self.reload_patch = False
         self.aux_button = False
         self.screengrab = False
+        self.trig = False
 
 
 

@@ -209,6 +209,9 @@ clocker = pygame.time.Clock()
 last_time = time.time()
 this_time = 0
 
+trig_last_time = time.time()
+trig_this_time = 0
+
 while 1:
     
     #check for OSC
@@ -236,7 +239,7 @@ while 1:
 
     # get audio
     l,data = inp.read()
-    triggered = False
+    etc.trig = False
     while l:
         for i in range(0,100) :
             try :
@@ -244,13 +247,16 @@ while 1:
                 avg += audioop.getsample(data, 2, (i * 3) + 1)
                 avg += audioop.getsample(data, 2, (i * 3) + 2)
                 avg = avg / 3
-                if (avg > 1000) :
-                    triggered = True
+                if (avg > 20000) :
+                    trig_this_time = time.time()
+                    if (trig_this_time - trig_last_time) > .05:
+                        etc.trig = True
+                        trig_last_time = trig_this_time
                 etc.audio_in[i] = avg
             except :
                 pass
         l,data = inp.read()
-    
+
     # parse lines from UDP instead, this is from web
     try :
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
