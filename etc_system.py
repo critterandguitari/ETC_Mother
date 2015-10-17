@@ -37,6 +37,7 @@ class System:
     tengrabs_thumbs = []
     grabcount = 0
     grabindex = 0
+    screengrab_flag = False
     
     # modes
     mode_names = []  # list of mode names pupulated from Modes folder on USB drive
@@ -231,7 +232,6 @@ class System:
             img = pygame.image.load(filepath)
             img = img.convert()
             thumb = pygame.transform.scale(img, (128, 72) )
-            #TODO : ensure img is 1280 x 720, or does it matter?
             self.latest_grab = img
             self.tengrabs_thumbs[self.grabcount] = thumb
             self.grabcount += 1
@@ -407,6 +407,7 @@ class System:
     def clear_flags(self):
         self.trig = False
         self.run_setup = False
+        self.screengrab_flag = False
         for i in range(0, 128):
             self.notes_last[i] = self.notes[i]
 

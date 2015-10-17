@@ -155,6 +155,12 @@ while 1:
         #print "mode not loaded, probably has errors"
         etc.error = "Mode not loaded."
 
+    # save a screen shot before drawing stuff
+    if (etc.screengrab_flag):
+        osc.send("/led", 6) # flash led yellow
+        etc.screengrab()
+        osc.send("/led", 7)
+        
     # see if save is being held down for deleting scene
     etc.update_scene_save_key()
 
