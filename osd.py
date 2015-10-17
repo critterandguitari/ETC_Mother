@@ -38,14 +38,14 @@ def loading_banner(screen, stuff) :
     global etc
     screen.fill((0,0,0)) 
         
-    font = pygame.font.Font("./Avenir-Medium.ttf", 150)
+    font = pygame.font.Font("./font.ttf", 150)
     text = font.render("ETC", True, (255,255,255))
     textpos = text.get_rect()
     textpos.centerx = screen.get_width() / 2
     textpos.centery = screen.get_height() /2
     screen.blit(text, textpos)
 
-    font = pygame.font.Font("./Avenir-Medium.ttf", 32)
+    font = pygame.font.Font("./font.ttf", 32)
     text = font.render(stuff, True, (255,255,255))
     text_rect = text.get_rect()
     text_rect.x = 20
@@ -57,7 +57,7 @@ def loading_banner(screen, stuff) :
 def render_overlay(screen) :
     global etc
 
-    font = pygame.font.Font("Avenir-Medium.ttf", 32)
+    font = pygame.font.Font("font.ttf", 32)
 
     # first time through, gather some info
     if etc.osd_first :
@@ -171,6 +171,14 @@ def render_overlay(screen) :
     text_rect.x = 790
     text_rect.centery = 588
     screen.blit(text, text_rect)
+ 
+    # midi ch
+    mode_str = " MIDI CH:  "   + str(etc.midi_ch) + " "
+    text = font.render(mode_str, True, etc.WHITE, etc.BLACK)
+    text_rect = text.get_rect()
+    text_rect.x = 790
+    text_rect.centery = 643
+    screen.blit(text, text_rect)
     
     # fps
    # mode_str = " FPS:  "   + str(int(etc.fps)) + " "
@@ -205,7 +213,7 @@ def render_overlay(screen) :
 
     # osd, errors
     i = 0
-    font = pygame.font.Font("Avenir-Medium.ttf", 24)
+    font = pygame.font.Font("font.ttf", 24)
     for errorline in etc.error.splitlines() :
         errormsg = font.render(errorline, True, etc.WHITE, etc.RED) 
         text_rect.x = 50
