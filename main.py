@@ -107,6 +107,7 @@ osc_server.add_method("/knobs", 'iiiiii', knobs_callback)
 osc_server.add_method("/key", 'ii', keys_callback)
 osc_server.add_method("/mnon", 'iii', midi_note_on_callback)
 osc_server.add_method("/mcc", 'iii', midi_cc_callback)
+osc_server.add_method("/setPatch", 's', midi_cc_callback)
 osc_server.add_method(None, None, fallback)
 
 #setup alsa for sound in
@@ -305,18 +306,6 @@ while 1:
             except :
                 pass
         l,data = inp.read()
-
-    # parse lines from UDP instead, this is from web
-    try :
-        data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
-        buf = buf + data
-        if '\n' in buf :
-            lines = buf.split('\n')
-            for l in lines :
-                etc.parse_serial(l)
-            buf = lines[-1]
-    except :
-        pass
 
     if etc.next_mode: 
         error = ''
