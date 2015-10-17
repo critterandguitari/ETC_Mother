@@ -50,7 +50,6 @@ etc.screen = screen
 print str(etc.screen) + " " +  str(screen)
 
 # load modes, post banner if none found
-print "loading modes..."
 if not (etc.load_modes()) :
     print "no modes found."
     osd.loading_banner(hwscreen, "No Modes found.  Insert USB drive with Modes folder and restart.")

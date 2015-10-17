@@ -147,7 +147,7 @@ class System:
     def load_modes(self):
         print "loading modes..."
         got_a_mode = False # at least one mode
-        mode_folders = helpers.get_immediate_subdirectories(self.MODES_PATH)
+        mode_folders = sorted(helpers.get_immediate_subdirectories(self.MODES_PATH), key=lambda s: s.lower() )
 
         for mode_folder in mode_folders :
             mode_name = str(mode_folder)
