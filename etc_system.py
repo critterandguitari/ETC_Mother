@@ -78,6 +78,7 @@ class System:
     midi_notes_last = [0] * 128
     midi_note_new = False
     midi_pgm = 0
+    midi_pgm_last = 0
     midi_clk = 0
 
     # system stuff 
@@ -102,14 +103,12 @@ class System:
         self.osd_first = True
 
     def set_mode_by_index (self, index) :
-        # TODO check if it exists
         self.mode_index = index
         self.mode = self.mode_names[self.mode_index]
         self.mode_root = self.MODES_PATH + self.mode + "/"
         self.error = ''
 
     def set_mode_by_name (self, name) :
-        # TODO  check if the mode exists
         self.mode = name 
         self.mode_index = self.mode_names.index(name)
         self.mode_root = self.MODES_PATH + self.mode + "/"
@@ -166,6 +165,16 @@ class System:
         if (self.midi_notes[127] > 0 and self.midi_notes_last[127] == 0):
             if (self.auto_clear) : self.auto_clear = False
             else : self.auto_clear = True
+
+    def check_pgm_change(self):
+        if (self.midi_pgm != self.midi_pgm_last):
+            self.midi_pgm_last = self.midi_pgm
+            if (len(self.scenes) > 0) :
+                self.scene_index = self.midi_pgm % len(self.scenes)
+                self.recall_scene(self.scene_index)
+            else :
+                self.mode_index = self.midi_pgm % len(self.mode_names)
+                self.set_mode_by_index(self.mode_index)
 
     # save a screenshot
     def screengrab(self):

@@ -130,6 +130,9 @@ while 1:
     # get knobs, checking for override, and check for new note on
     etc.update_knobs_and_notes()
 
+    # check for midi program change
+    etc.check_pgm_change()
+
     # quit on esc
     for event in pygame.event.get():
         if event.type == QUIT:
