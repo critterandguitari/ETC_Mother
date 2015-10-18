@@ -162,6 +162,11 @@ class System:
             if self.midi_notes[i] > 0 and self.midi_notes_last[i] == 0:
                 self.midi_note_new = True
 
+        # very last midi note controls auto clear
+        if (self.midi_notes[127] > 0 and self.midi_notes_last[127] == 0):
+            if (self.auto_clear) : self.auto_clear = False
+            else : self.auto_clear = True
+
     # save a screenshot
     def screengrab(self):
         filenum = 0
@@ -255,7 +260,7 @@ class System:
     def update_scene_save_key(self):
         if self.save_key_status :
             self.save_key_count += 1
-            if (self.save_key_count > 60) : # held down for 60 frames, delete the scene
+            if (self.save_key_count > 30) : # held down for 60 frames, delete the scene
                 self.delete_current_scene()
                 self.save_key_status = False
 
