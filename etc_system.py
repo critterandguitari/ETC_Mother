@@ -166,6 +166,12 @@ class System:
             if (self.auto_clear) : self.auto_clear = False
             else : self.auto_clear = True
 
+    def foot_pressed(self) :
+        if (len(self.scenes) > 0) :
+            self.next_scene()
+        else :
+            self.next_mode()
+
     def check_pgm_change(self):
         if (self.midi_pgm != self.midi_pgm_last):
             self.midi_pgm_last = self.midi_pgm

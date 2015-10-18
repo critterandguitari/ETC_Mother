@@ -11,6 +11,12 @@ cc_last = [0] * 5
 def fallback(path, args):
     pass
 
+def fs_callback(path, args):
+    global etc
+    v = args
+    if (v[0] > 0):
+        etc.foot_pressed()
+
 def mblob_callback(path, args):
     global etc, cc_last
     midi_blob = args[0]
@@ -105,6 +111,7 @@ def init (etc_object) :
   #  osc_server.add_method("/new", 's', reload_callback)
     osc_server.add_method("/set", 's', set_callback)
     osc_server.add_method("/new", 's', new_callback)
+    osc_server.add_method("/fs", 'i', fs_callback)
     osc_server.add_method(None, None, fallback)
 
 def recv() :
