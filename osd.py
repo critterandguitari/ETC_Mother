@@ -98,7 +98,7 @@ def render_overlay(screen) :
     for i in range(0, 5):
         pygame.draw.line(screen, etc.WHITE, [offx, (i*10)+offy], [offx + 320, (i*10)+offy], 1)
     for i in range(0,128):
-        if (etc.notes[i] > 0):
+        if (etc.midi_notes[i] > 0):
             pygame.draw.rect(screen, etc.WHITE, (offx + 10 * (i % 32), offy + 10 * (i / 32), 10, 10))
             
     # knobs
@@ -122,7 +122,7 @@ def render_overlay(screen) :
     text_rect.centery = 440
     screen.blit(text, text_rect)
     pygame.draw.rect(screen, etc.WHITE, (180, 425, 40, 35), 1)
-    if etc.trig:
+    if etc.audio_trig:
         pygame.draw.rect(screen, (255,255,0), (180, 425, 40, 35))
     
     # input level 

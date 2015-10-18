@@ -33,7 +33,8 @@ class System:
     OSDBG = (0,0,255)
 
     # screen grabs
-    latest_grab = None
+    lastgrab = None
+    lastgrab_thumb = None
     tengrabs_thumbs = []
     grabcount = 0
     grabindex = 0
@@ -57,7 +58,7 @@ class System:
     # audio
     audio_in = [0] * 100
     audio_peak = 0
-    trig = False
+    audio_trig = False
     
     # knobs a used by mode 
     knob1 = .200
@@ -73,8 +74,9 @@ class System:
     knob_override = [False] * 5
 
     # midi stuff (CC gets updated into knobs
-    notes = [0] * 128
-    notes_last = [0] * 128
+    midi_notes = [0] * 128
+    midi_notes_last = [0] * 128
+    midi_note_new = False
     midi_pgm = 0
     midi_clk = 0
 
@@ -85,7 +87,15 @@ class System:
     bg_color = (0, 0, 0)
     quit = False
     osd = False
-    osd_first = False #when osd is first turned on this is used to gather info
+    osd_first = False # when osd is first turned on this is used to gather info
+    trig_button = False # if the button is held down or not
+
+    def update_trig_button(self, stat) :
+        if (stat > 0 ):
+            self.audio_trig = True
+            self.trig_button = True
+        else :
+            self.trig_button = False
 
     def set_osd(self, stat) :
         self.osd = stat
@@ -149,8 +159,8 @@ class System:
 
         # check for new notes
         for i in range(0, 128):
-            if self.notes[i] > 0 and self.notes_last[i] == 0:
-                self.trig = True
+            if self.midi_notes[i] > 0 and self.midi_notes_last[i] == 0:
+                self.midi_note_new = True
 
     # save a screenshot
     def screengrab(self):
@@ -164,7 +174,8 @@ class System:
         self.grabindex += 1
         self.grabindex %= 10
         pygame.transform.scale(self.screen, (128, 72), self.tengrabs_thumbs[self.grabindex] )
-        self.latest_grab = self.screen.copy()
+        self.lastgrab = self.screen.copy()
+        self.lastgrab_thumb = self.tengrabs_thumbs[self.grabindex]
         print "grabbed " + imagepath
 
     # load modes,  check if modes are found
@@ -217,14 +228,16 @@ class System:
             print 'No grab folder, creating...'
             os.system('mkdir ' + self.GRABS_PATH)
         print 'loading recent grabs...'
-        self.latest_grab = None
+        self.lastgrab = None
+        self.lastgrab_thumb = None
         self.tengrabs_thumbs = []
         self.grabcount = 0
         self.grabindex = 0
         for i in range(0,11):
             self.tengrabs_thumbs.append(pygame.Surface((128, 72)))
         
-        self.latest_grab = pygame.Surface(self.RES )
+        self.lastgrab = pygame.Surface(self.RES )
+        self.lastgrab_thumb = pygame.Surface((128,72) )
 
         for filepath in sorted(glob.glob(self.GRABS_PATH + '*.jpg')):
             filename = os.path.basename(filepath)
@@ -232,7 +245,8 @@ class System:
             img = pygame.image.load(filepath)
             img = img.convert()
             thumb = pygame.transform.scale(img, (128, 72) )
-            self.latest_grab = img
+            self.lastgrab = img
+            self.lastgrab_thumb = thumb
             self.tengrabs_thumbs[self.grabcount] = thumb
             self.grabcount += 1
             if self.grabcount > 10: break
@@ -405,11 +419,12 @@ class System:
         return color
 
     def clear_flags(self):
-        self.trig = False
+        self.audio_trig = False
         self.run_setup = False
         self.screengrab_flag = False
+        self.midi_note_new = False
         for i in range(0, 128):
-            self.notes_last[i] = self.notes[i]
+            self.midi_notes_last[i] = self.midi_notes[i]
 
 
 

@@ -1,13 +1,15 @@
 import alsaaudio, audioop
 import time
+import math
 
 inp = None
 etc = None
 trig_this_time = 0
 trig_last_time = 0
+sin = [0] * 100
 
 def init (etc_object) :
-    global inp, etc, trig_this_time, trig_last_time
+    global inp, etc, trig_this_time, trig_last_time, sin
     etc = etc_object
     #setup alsa for sound in
     inp = alsaaudio.PCM(alsaaudio.PCM_CAPTURE,alsaaudio.PCM_NONBLOCK)
@@ -17,9 +19,12 @@ def init (etc_object) :
     inp.setperiodsize(300)
     trig_last_time = time.time()
     trig_this_time = time.time()
+    
+    for i in range(0,100) :
+        sin[i] = int(math.sin(2 * 3.1459 * i / 100) * 32700)
 
 def recv() :
-    global inp, etc, trig_this_time, trig_last_time
+    global inp, etc, trig_this_time, trig_last_time, sin
     # get audio
     l,data = inp.read()
     peak = 0
@@ -33,12 +38,17 @@ def recv() :
                 if (avg > 20000) :
                     trig_this_time = time.time()
                     if (trig_this_time - trig_last_time) > .05:
-                        etc.trig = True
+                        etc.audio_trig = True
                         trig_last_time = trig_this_time
                 if avg > peak :
                     etc.audio_peak = avg
                     peak = avg
-                etc.audio_in[i] = avg
+                # if the trigger button is held
+                if (etc.trig_button) :
+                    etc.audio_in[i] = sin[i] 
+                else :
+                    etc.audio_in[i] = avg
+
             except :
                 pass
         l,data = inp.read()

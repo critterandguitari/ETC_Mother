@@ -33,9 +33,9 @@ def mblob_callback(path, args):
     for i in range(0, 16) :
         for j in range(0, 8) :
             if midi_blob[i] & (1<<j) :
-                etc.notes[(i * 8) + j] = 1
+                etc.midi_notes[(i * 8) + j] = 1
             else :
-                etc.notes[(i * 8) + j] = 0
+                etc.midi_notes[(i * 8) + j] = 0
 
 def set_callback(path, args):
     global etc
@@ -69,7 +69,7 @@ def keys_callback(path, args) :
     k, v = args
     if (k == 2 and v > 0) : etc.next_mode()
     if (k == 1 and v > 0) : etc.prev_mode()
-    if (k == 9 and v > 0) : etc.trig = True
+    if (k == 9) : etc.update_trig_button(v)
     if (k == 7 and v > 0) : etc.screengrab_flag = True
     if (k == 4 and v > 0) : etc.prev_scene()
     if (k == 6) : etc.save_or_delete_scene(v)

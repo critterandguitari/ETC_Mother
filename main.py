@@ -178,9 +178,6 @@ while 1:
             etc.error = traceback.format_exc()
             print "error with setup: " + etc.error
    
-    if etc.trig:
-        print "triggered"
-
     # draw it
     try :
         mode.draw(screen, etc)
