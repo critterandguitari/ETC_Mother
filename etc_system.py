@@ -14,7 +14,7 @@ class System:
 
     GRABS_PATH = "/usbdrive/Grabs/"
     MODES_PATH = "/usbdrive/Modes/"
-    SCENES_PATH = "/usbdrive/Scenes.txt"
+    SCENES_PATH = "/usbdrive/Scenes.csv"
 
     RES =  (1280,720)
 
@@ -65,6 +65,7 @@ class System:
    
     # knob values used internally
     knob = [.2] * 5
+    knob_hardware = [.2] * 5
     knob_snapshot = [.2] * 5
     knob_override = [False] * 5
 
@@ -105,21 +106,22 @@ class System:
             self.mode_index = len(self.mode_names) - 1
         self.set_mode_by_index(self.mode_index)
 
-    def update_knob (self, index, val) :
-        if self.knob_override[index] :
-            if abs(self.knob_snapshot[index] - val) > .05 :
-                self.knob_override[index] = False
-                self.knob[index] = val
-        else : 
-            self.knob[index] = val
-
     def override_all_knobs(self) :
         for i in range(0,5):
             self.knob_override[i] = True
-            self.knob_snapshot[i] = self.knob[i]
+            self.knob_snapshot[i] = self.knob_hardware[i]
     
     # then do this for the modes 
     def update_knobs(self) :
+        for i in range(0, 5) :
+            if self.knob_override[i] :
+                if abs(self.knob_snapshot[i] - self.knob_hardware[i]) > .05 :
+                    self.knob_override[i] = False
+                    self.knob[i] = self.knob_hardware[i]
+            else : 
+                self.knob[i] = self.knob_hardware[i]
+
+        # fill these in for convinience
         self.knob1 = self.knob[0]
         self.knob2 = self.knob[1]
         self.knob3 = self.knob[2]
@@ -218,24 +220,28 @@ class System:
             self.save_key_status = False
                 
     def delete_current_scene(self):
-        del self.scenes[self.scene_index]
-        self.recall_scene(self.scene_index)
-        self.write_all_scenes()
-        print "deleted scene: " + str(self.scene_index)
+        print "deleting scene"
+        if len(self.scenes) > 0:
+            del self.scenes[self.scene_index]
+            if self.scene_index >= len(self.scenes):
+                self.scene_index = len(self.scenes) - 1
+            self.recall_scene(self.scene_index)
+            self.write_all_scenes()
+        #print "deleted scene: " + str(self.scene_index)
 
     def save_scene(self):
         print "saving scene"
         self.scenes.append([self.mode, self.knob1, self.knob2, self.knob3, self.knob4, self.knob5, self.auto_clear])
         self.write_all_scenes()
         # and set it to most recent
-        self.recall_scene(len(scenes) - 1)
+        self.recall_scene(len(self.scenes) - 1)
 
     def write_all_scenes(self):
 	    # write it
         with open(self.SCENES_PATH, "wb") as f:
     	    writer = csv.writer(f,quoting=csv.QUOTE_MINIMAL)
     	    writer.writerows(self.scenes) 
-        print "saved scenes: " + str(self.scenes)
+        #print "saved scenes: " + str(self.scenes)
 
     def load_scenes(self):
         # create scene file if doesn't exits
@@ -282,17 +288,19 @@ class System:
 
     def recall_scene(self, index) :
         print "recalling scene " + str(index)
-        scene = self.scenes[index]
-        self.scene_index = index
-        self.override_all_knobs()
-        self.knob[0] = scene[1]
-        self.knob[1] = scene[2]
-        self.knob[2] = scene[3]
-        self.knob[3] = scene[4]
-        self.knob[4] = scene[5]
-        self.auto_clear = scene[6]
-        # TODO:  check if the mode exists that this scene is referring to
-        self.set_mode_by_name(scene[0])
+        try :
+            scene = self.scenes[index]
+            self.scene_index = index
+            self.override_all_knobs()
+            self.knob[0] = scene[1]
+            self.knob[1] = scene[2]
+            self.knob[2] = scene[3]
+            self.knob[3] = scene[4]
+            self.knob[4] = scene[5]
+            self.auto_clear = scene[6]
+            self.set_mode_by_name(scene[0])
+        except :
+            print "probably no scenes"
 
     def color_picker( self ):
         # convert knob to 0-1

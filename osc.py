@@ -44,11 +44,11 @@ def knobs_callback(path, args):
     global etc
     k1, k2, k3, k4, k5, k6 = args
     #print "received message: " + str(args)
-    etc.update_knob(0, float(k4) / 1023)
-    etc.update_knob(1, float(k1) / 1023)
-    etc.update_knob(2, float(k2) / 1023)
-    etc.update_knob(3, float(k5) / 1023)
-    etc.update_knob(4, float(k3) / 1023)
+    etc.knob_hardware[0] = float(k4) / 1023
+    etc.knob_hardware[1] = float(k1) / 1023
+    etc.knob_hardware[2] = float(k2) / 1023
+    etc.knob_hardware[3] = float(k5) / 1023
+    etc.knob_hardware[4] = float(k3) / 1023
 
 def keys_callback(path, args) :
     global etc
