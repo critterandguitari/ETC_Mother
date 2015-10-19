@@ -12,7 +12,7 @@ import osc
 import sound
 import filer
 import osd
-
+import liblo
 print "starting..."
 
 # create etc object
@@ -93,10 +93,16 @@ start = time.time()
 etc.set_mode_by_index(0)
 mode = sys.modules[etc.mode]
 
+
+time.sleep(1)
+
 while 1:
     
     #check for OSC
     osc.recv()
+
+    #send get midi and knobs for next time
+    osc.send("/nf", 1) 
 
     # get knobs1-5
     etc.update_knobs()

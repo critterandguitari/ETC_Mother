@@ -9,14 +9,25 @@ osc_target = None
 def fallback(path, args):
     pass
 
+
+def mblob_callback(path, args):
+    global etc
+    #print "received message: " + str(args)
+    etc.update_knob(0, float(args[0][0]) / 127)
+    etc.update_knob(1, float(args[0][1]) / 127)
+    etc.update_knob(2, float(args[0][2]) / 127)
+    etc.update_knob(3, float(args[0][3]) / 127)
+    etc.update_knob(4, float(args[0][4]) / 127)
+
 def knobs_callback(path, args):
     global etc
     k1, k2, k3, k4, k5, k6 = args
-    etc.update_knob(0, float(k4) / 1023)
-    etc.update_knob(1, float(k1) / 1023)
-    etc.update_knob(2, float(k2) / 1023)
-    etc.update_knob(3, float(k5) / 1023)
-    etc.update_knob(4, float(k3) / 1023)
+    print "received message: " + str(args)
+#    etc.update_knob(0, float(k4) / 1023)
+#    etc.update_knob(1, float(k1) / 1023)
+#    etc.update_knob(2, float(k2) / 1023)
+#    etc.update_knob(3, float(k5) / 1023)
+#    etc.update_knob(4, float(k3) / 1023)
 
 def keys_callback(path, args) :
     global etc
@@ -49,15 +60,15 @@ def midi_cc_callback(path, args):
     c, n, v = args
 
     if n == 21 :
-        etc.knob1l = float(v) / 127
+        etc.knob1 = float(v) / 127
     if n == 22 :
-        etc.knob2l = float(v) / 127
+        etc.knob2 = float(v) / 127
     if n == 23 :
-        etc.knob3l = float(v) / 127
+        etc.knob3 = float(v) / 127
     if n == 24 :
-        etc.knob4l = float(v) / 127
+        etc.knob4 = float(v) / 127
     if n == 25 :
-        etc.knob5l = float(v) / 127
+        etc.knob5 = float(v) / 127
 
 def init (etc_object) :
    
@@ -83,6 +94,7 @@ def init (etc_object) :
     osc_server.add_method("/mnon", 'iii', midi_note_on_callback)
     osc_server.add_method("/mcc", 'iii', midi_cc_callback)
     osc_server.add_method("/setPatch", 's', midi_cc_callback)
+    osc_server.add_method("/mblob", 'b', mblob_callback)
     osc_server.add_method(None, None, fallback)
 
 def recv() :
@@ -91,7 +103,6 @@ def recv() :
         pass
     #osc_server.recv(0)
 
-def send(addr, *args) :
+def send(addr, args) :
     global osc_target
     liblo.send(osc_target, addr, args) 
-
