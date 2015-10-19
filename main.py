@@ -79,6 +79,9 @@ for i in range(0, len(etc.mode_names)-1) :
 # load screen grabs
 etc.load_grabs()
 
+# load scenes
+etc.load_scenes()
+
 # used to measure fps
 start = time.time()
 
@@ -118,14 +121,17 @@ while 1:
     sound.recv()
 
     # set the mode on which to call drawi
-# TODO if the module is no longer in sys (like got deleted and not reloaded, this will error,
-# so use exception
+    # TODO if the module is no longer in sys (like got deleted and not reloaded, this will error,
+    # so use exception
     mode = sys.modules[etc.mode]
 
+    # see if save is being held down for deleting scene
+    etc.update_scene_save_key()
+
+    # clear it with bg color if auto clear enabled
+    etc.bg_color =  etc.color_picker_bg()
     if etc.auto_clear :
         screen.fill(etc.bg_color) 
-
-    etc.bg_color =  etc.color_picker_bg()
     
     # run setup (usually if the mode was reloaded)
     if etc.run_setup :

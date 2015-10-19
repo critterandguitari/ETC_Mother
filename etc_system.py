@@ -8,11 +8,13 @@ import os
 import glob
 import sys
 import helpers
+import csv
 
 class System:
 
     GRABS_PATH = "/usbdrive/Grabs/"
     MODES_PATH = "/usbdrive/Modes/"
+    SCENES_PATH = "/usbdrive/Scenes.txt"
 
     RES =  (1280,720)
 
@@ -37,12 +39,18 @@ class System:
     grabindex = 0
     
     # modes
-    mode_names = []
-    mode_index = 0
-    mode = ''
-    mode_root = ''
-    error = ''
-    run_setup = False
+    mode_names = []  # list of mode names pupulated from Modes folder on USB drive
+    mode_index = 0   # index of current mode
+    mode = ''        # name of current mode
+    mode_root = ''   # root path of current mode
+    error = ''       # errors that happend during setup() or run()
+    run_setup = False # flag to signal main loop to run setup() usually if a mode was reloaded
+
+    #scenes
+    scenes = []     # 
+    scene_index = 0
+    save_key_status = False
+    save_key_count = 0
     
     # audio
     audio_in = [0] * 100
@@ -72,9 +80,6 @@ class System:
     quit = False
     osd = False
 
-    def set_mode_by_name (self, new_mode) :
-        pass
-
     def set_mode_by_index (self, index) :
         self.mode_index = index
         self.mode = self.mode_names[self.mode_index]
@@ -82,20 +87,21 @@ class System:
         self.error = ''
 
     def set_mode_by_name (self, name) :
-        self.mode = name #self.mode_names[self.mode_index]
+        # TODO  check if the mode exists
+        self.mode = name 
         self.mode_index = self.mode_names.index(name)
         self.mode_root = self.MODES_PATH + self.mode + "/"
         self.error = ''
 
     def next_mode (self) :
         self.mode_index += 1
-        if self.mode_index == len(self.mode_names) : 
+        if self.mode_index >= len(self.mode_names) : 
             self.mode_index = 0
         self.set_mode_by_index(self.mode_index)
 
     def prev_mode (self) :
         self.mode_index -= 1
-        if self.mode_index <= 0 : 
+        if self.mode_index < 0 : 
             self.mode_index = len(self.mode_names) - 1
         self.set_mode_by_index(self.mode_index)
 
@@ -107,6 +113,11 @@ class System:
         else : 
             self.knob[index] = val
 
+    def override_all_knobs(self) :
+        for i in range(0,5):
+            self.knob_override[i] = True
+            self.knob_snapshot[i] = self.knob[i]
+    
     # then do this for the modes 
     def update_knobs(self) :
         self.knob1 = self.knob[0]
@@ -188,6 +199,100 @@ class System:
             self.tengrabs_thumbs[self.grabcount] = thumb
             self.grabcount += 1
             if self.grabcount > 10: break
+
+    # called from main loop
+    def update_scene_save_key(self):
+        if self.save_key_status :
+            self.save_key_count += 1
+            if (self.save_key_count > 60) : # held down for 60 frames, delete the scene
+                self.delete_current_scene()
+                self.save_key_status = False
+
+    def save_or_delete_scene(self, key_stat):
+        if key_stat > 0 :
+            self.save_key_status = True
+            self.save_key_count = 0
+        else :
+            if (self.save_key_status) :  # key release before delete happens
+                self.save_scene()
+            self.save_key_status = False
+                
+    def delete_current_scene(self):
+        del self.scenes[self.scene_index]
+        self.recall_scene(self.scene_index)
+        self.write_all_scenes()
+        print "deleted scene: " + str(self.scene_index)
+
+    def save_scene(self):
+        print "saving scene"
+        self.scenes.append([self.mode, self.knob1, self.knob2, self.knob3, self.knob4, self.knob5, self.auto_clear])
+        self.write_all_scenes()
+        # and set it to most recent
+        self.recall_scene(len(scenes) - 1)
+
+    def write_all_scenes(self):
+	    # write it
+        with open(self.SCENES_PATH, "wb") as f:
+    	    writer = csv.writer(f,quoting=csv.QUOTE_MINIMAL)
+    	    writer.writerows(self.scenes) 
+        print "saved scenes: " + str(self.scenes)
+
+    def load_scenes(self):
+        # create scene file if doesn't exits
+        if not os.path.exists(self.SCENES_PATH):
+            f = file(self.SCENES_PATH, "w")
+            f.close()
+        # open it
+        with open(self.SCENES_PATH, 'rb') as f:
+            reader = csv.reader(f)
+            csvin = list(reader)
+        self.scenes = []
+        try :
+            for row in csvin :
+                scene = []
+                scene.append(str(row[0]))
+                scene.append(float(row[1]))
+                scene.append(float(row[2]))
+                scene.append(float(row[3]))
+                scene.append(float(row[4]))
+                scene.append(float(row[5]))
+                if row[6] == 'True':
+                    scene.append(True)
+                else :
+                    scene.append(False)
+                self.scenes.append(scene)
+        except:
+            print "error parsing scene file"
+        print "loaded scenes: " + str(self.scenes)
+
+    def next_scene(self):
+        self.scene_index += 1
+        if self.scene_index >= len(self.scenes) : 
+            self.scene_index = 0
+        self.recall_scene(self.scene_index)
+
+    def prev_scene (self) :
+        self.scene_index -= 1
+        if self.scene_index < 0 : 
+            if len(self.scenes) > 0 :
+                self.scene_index = len(self.scenes) - 1
+            else :
+                self.scene_index = 0
+        self.recall_scene(self.scene_index)
+
+    def recall_scene(self, index) :
+        print "recalling scene " + str(index)
+        scene = self.scenes[index]
+        self.scene_index = index
+        self.override_all_knobs()
+        self.knob[0] = scene[1]
+        self.knob[1] = scene[2]
+        self.knob[2] = scene[3]
+        self.knob[3] = scene[4]
+        self.knob[4] = scene[5]
+        self.auto_clear = scene[6]
+        # TODO:  check if the mode exists that this scene is referring to
+        self.set_mode_by_name(scene[0])
 
     def color_picker( self ):
         # convert knob to 0-1
@@ -291,50 +396,6 @@ class System:
         
         self.bg_color = color
         return color
- 
-    def save_preset(self):
-        print "saving preset"
-        fo = open("/usbdrive/presets.txt", "a+")
-        fo.write(self.mode + "," + str(self.knob1) + "," + str(self.knob2) +"," + str(self.knob3) + "," + str(self.knob4) +  "," + str(self.knob5) + "," + str(self.auto_clear) + "\n");
-        fo.close()
-
-    def next_preset(self):
-        presets = []
-        for line in fileinput.input("/usbdrive/presets.txt"):
-            presets.append(line)
-        self.preset_index += 1
-        if self.preset_index == len(presets):
-            self.preset_index = 0
-        self.recall_preset(presets[self.preset_index])
-
-    def prev_preset(self):
-        presets = []
-        for line in fileinput.input("/usbdrive/presets.txt"):
-            presets.append(line)
-        self.preset_index -= 1
-        if self.preset_index < 0:
-            self.preset_index = len(presets) - 1
-        self.recall_preset(presets[self.preset_index])
-
-    def recall_preset(self, preset) :
-        array = preset.strip().split(',')
-        if len(array) == 7 :
-            print "recalling preset: " + str(preset)
-            self.mode = array[0]
-            # snapshot current knobs
-            self.knob1s = self.knob1l 
-            self.knob2s = self.knob2l
-            self.knob3s = self.knob3l
-            self.knob4s = self.knob4l 
-            self.knob5s = self.knob5l 
-
-            # then lock em, if they locked we'll use the preset value
-            self.knob1lock = self.knob2lock = self.knob3lock = self.knob4lock = self.knob5lock = True
-            if str(array[6]) == "False":
-                self.auto_clear = False
-            else :
-                self.auto_clear = True
-            self.set_mode = True
 
     def clear_flags(self):
         self.trig = False

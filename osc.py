@@ -55,20 +55,17 @@ def keys_callback(path, args) :
     k, v = args
     if (k == 2 and v > 0) : etc.next_mode()
     if (k == 1 and v > 0) : etc.prev_mode()
-    if (k == 9 and v > 0) : etc.trig = True
+    if (k == 9 and v > 0) : etc.trigger()
     if (k == 7 and v > 0) : etc.screengrab()
-    if (k == 4 and v > 0) : etc.prev_preset()
-    if (k == 6 and v > 0) : etc.save_preset()
-    if (k == 5 and v > 0) : etc.next_preset()
+    if (k == 4 and v > 0) : etc.prev_scene()
+    if (k == 6) : etc.save_or_delete_scene(v)
+    if (k == 5 and v > 0) : etc.next_scene()
     if (k == 3 and v > 0) : 
         if (etc.osd) : etc.osd = False
         else : etc.osd = True
     if (k == 8 and v > 0) : 
         if (etc.auto_clear) : etc.auto_clear = False
         else : etc.auto_clear = True
-
-    #print str(k) + " " + str(v)
-
 
 def init (etc_object) :
     global osc_server, osc_target, etc

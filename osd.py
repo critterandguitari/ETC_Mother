@@ -38,7 +38,6 @@ def render_overlay(screen) :
     i = 0
     for errorline in etc.error.splitlines() :
         errormsg = font.render(errorline, True, etc.WHITE, etc.RED) 
-        text_rect = notemsg.get_rect()
         text_rect.x = 50
         text_rect.y = 20 + (i * 32)
         screen.blit(errormsg, text_rect)
