@@ -195,6 +195,7 @@ class System:
             b = random.randrange(0, 2) * 255
             color = (r,g,b)
         
+        self.bg_color = color
         return color
  
 

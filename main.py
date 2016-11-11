@@ -61,16 +61,25 @@ def keys_callback(path, args) :
 
     print str(k) + " " + str(v)
 
-def midi_callback(path, args):
+def midi_note_on_callback(path, args):
     global mvp
-    n, v = args
+    c, n, v = args
     mvp.note_on = True
     mvp.note_num = n
     mvp.note_velocity = v
+    print n
 
 osc_server.add_method("/knobs", 'iiiiii', knobs_callback)
 osc_server.add_method("/key", 'ii', keys_callback)
-osc_server.add_method("/midi", 'ii', midi_callback)
+osc_server.add_method("/mnon", 'iii', midi_note_on_callback)
+
+
+#while 1:
+    
+    #check for OSC
+#    while (osc_server.recv(1)):
+#        pass
+
 
 #setup alsa for sound in
 
@@ -306,7 +315,7 @@ while 1:
             del(sys.modules[mvp.patch]) 
         print "deleted module, reloading"
         patch_name = mvp.patch
-        patch_path = '/usbdrive/Patches/'+patch_name+'/'+patch_name+'.py'
+        patch_path = '/usbdrive/Patches/'+patch_name+'/main.py'
         try :
             patch = imp.load_source(patch_name, patch_path)
             error = ''
