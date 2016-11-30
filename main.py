@@ -2,7 +2,6 @@ import os
 import pygame
 import time
 import random
-import serial
 import fullfb
 import glob
 import mvp_system
@@ -57,7 +56,6 @@ def keys_callback(path, args) :
     if (k == 8 and v > 0) : 
         if (mvp.auto_clear) : mvp.auto_clear = False
         else : mvp.auto_clear = True
-
 
     print str(k) + " " + str(v)
 
@@ -130,14 +128,15 @@ def get_immediate_subdirectories(dir):
     return [name for name in os.listdir(dir)
             if os.path.isdir(os.path.join(dir, name))]
 
-
-print "init serial port"
-serialport = serial.Serial("/dev/ttymxc3", 500000)
-
 print "opening frame buffer"
-#screen = fullfb.init()
 hwscreen = pygame.display.set_mode((1280,720),  pygame.FULLSCREEN | pygame.DOUBLEBUF, 32  )
 screen = pygame.Surface(hwscreen.get_size())
+screen.fill(GREEN) 
+hwscreen.blit(screen, (0,0))
+pygame.display.flip()
+hwscreen.blit(screen, (0,0))
+pygame.display.flip()
+time.sleep(3)
 
 # TODO :  don't make a list of moduels, just make a list of their names, and select them from  sys.modules
 print "loading patches..."
@@ -169,9 +168,6 @@ for patch_name in patch_names :
         print "no setup found"
         continue 
 
-# flush serial port
-serialport.flushInput()
-
 buf = ''
 line = ''
 error = ''
@@ -181,6 +177,10 @@ fps = 0
 start = time.time()
 clocker = pygame.time.Clock()
 
+# fade out stuff
+wash_count = 0
+wash = pygame.Surface(screen.get_size())
+wash.set_alpha(10)
 
 while 1:
     
@@ -199,23 +199,11 @@ while 1:
             if event.key == K_ESCAPE:
                 exit()
 
-
-
-    #fps = count / (time.time() - start)
-  
-    
-   # if ((count % 200) == 0):
-    #`    mvp.next_patch = True        
-
     count += 1
     if ((count % 50) == 0):
         now = time.time()
         fps = 1 / ((now - start) / 50)
         start = now
-        
-    #if count > 1000:
-    #    exit()
- 
 
     # get audio
     # Read data from device
@@ -243,19 +231,6 @@ while 1:
         # Return the maximum of the absolute value of all samples in a fragment.
         #print audioop.max(data, 2)
 
-   
-    # get serial line and parse it, TODO hmmm could this miss lines?  (only parses most recent, but there could be more in serial buffer)
-    if serialport.inWaiting() > 0:
-        try:
-            buf = buf + serialport.read(serialport.inWaiting())
-            if '\n' in buf :
-                lines = buf.split('\n')
-                for l in lines :
-                    mvp.parse_serial(l)
-                buf = lines[-1]
-        except: 
-            pass
-
     # ... or parse lines from UDP instead
     try :
         data, addr = sock.recvfrom(1024) # buffer size is 1024 bytes
@@ -282,22 +257,14 @@ while 1:
         mvp.patch = patch_names[num]
         patch = sys.modules[patch_names[num]]
 
-#    if mvp.quarter_note : 
-#        screen.fill ((0,0,0))
-#        pygame.display.flip()
-
-    #mvp.bg_color =  (mvp.knob5 / 4, mvp.knob5 % 256, (mvp.knob5 * 4) % 256)
-    mvp.bg_color =  mvp.color_picker_bg()
-
     if mvp.clear_screen:
-        #screen.fill( (random.randint(0,255), random.randint(0,255), random.randint(0,255))) 
         screen.fill(mvp.bg_color) 
 
     if mvp.auto_clear :
         screen.fill(mvp.bg_color) 
 
-    #mvp.note_on = True
-
+    mvp.bg_color =  mvp.color_picker_bg()
+    
     # set patch
     if mvp.set_patch :
         print "setting: " + mvp.patch
@@ -382,9 +349,24 @@ while 1:
        
 
     #clocker.tick(35)
+
+    # if knob is all the way up, it is no fade
+    #if mvp.knob5 > .95 :
+   #     screen.fill(mvp.bg_color) 
+
     hwscreen.blit(screen, (0,0))
     pygame.display.flip()
-    #time.sleep(.01)
+        #time.sleep(.01)
+
+    # do fade out thing
+    #wash_count = wash_count + 1;
+    #wash_count = wash_count % 5;
+    
+    #if wash_count == 0 :
+    #    wash.set_alpha(int(mvp.knob5 * 100))
+    #    wash.fill(mvp.bg_color)
+    #    screen.blit(wash, (0,0))
+ 
 
     if mvp.quit :
         sys.exit()

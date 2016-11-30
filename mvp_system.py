@@ -341,13 +341,13 @@ class System:
 
     def save_preset(self):
         print "saving preset"
-        fo = open("../presets.txt", "a+")
+        fo = open("/usbdrive/presets.txt", "a+")
         fo.write(self.patch + "," + str(self.knob1) + "," + str(self.knob2) +"," + str(self.knob3) + "," + str(self.knob4) +  "," + str(self.knob5) + "," + str(self.auto_clear) + "\n");
         fo.close()
 
     def next_preset(self):
         presets = []
-        for line in fileinput.input("../presets.txt"):
+        for line in fileinput.input("/usbdrive/presets.txt"):
             presets.append(line)
         self.preset_index += 1
         if self.preset_index == len(presets):
@@ -356,7 +356,7 @@ class System:
 
     def prev_preset(self):
         presets = []
-        for line in fileinput.input("../presets.txt"):
+        for line in fileinput.input("/usbdrive/presets.txt"):
             presets.append(line)
         self.preset_index -= 1
         if self.preset_index < 0:
