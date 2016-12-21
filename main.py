@@ -11,14 +11,16 @@ import sys
 import liblo
 from pygame.locals import *
 import alsaaudio, audioop
- 
+
+GRABS_PATH = "/usbdrive/Grabs/"
+MODES_PATH = "/usbdrive/Modes/"
+
 #create etc object
 etc = etc_system.System()
 etc.clear_flags()
 
 # get our ip
 etc.ip = socket.gethostbyname(socket.gethostname())
-
 
 # OSC init
 try:
@@ -49,8 +51,8 @@ def keys_callback(path, args) :
     osc_msgs_recv += 1
     global etc
     k, v = args
-    if (k == 2 and v > 0) : etc.next_patch = True
-    if (k == 1 and v > 0) : etc.prev_patch = True
+    if (k == 2 and v > 0) : etc.next_mode = True
+    if (k == 1 and v > 0) : etc.prev_mode = True
     if (k == 9 and v > 0) : etc.clear_screen = True
     if (k == 7 and v > 0) : etc.screengrab = True
     if (k == 4 and v > 0) : etc.prev_preset()
@@ -147,31 +149,32 @@ pygame.display.flip()
 time.sleep(3)
 
 # TODO :  don't make a list of moduels, just make a list of their names, and select them from  sys.modules
-print "loading patches..."
-patch_names = []
-patch_folders = get_immediate_subdirectories('/usbdrive/Patches')
+print "loading modees..."
+mode_names = []
+mode_folders = get_immediate_subdirectories(MODES_PATH)
 
-for patch_folder in patch_folders :
-    patch_name = str(patch_folder)
-    patch_path = '/usbdrive/Patches/'+patch_name+'/main.py'
-    print patch_path
+for mode_folder in mode_folders :
+    mode_name = str(mode_folder)
+    mode_path = MODES_PATH+mode_name+'/main.py'
+    print mode_path
     try :
-        imp.load_source(patch_name, patch_path)
-        patch_names.append(patch_name)
+        imp.load_source(mode_name, mode_path)
+        mode_names.append(mode_name)
     except Exception, e:
         print traceback.format_exc()
 
-# set initial patch
+# set initial mode
 num = 0
-etc.patch = patch_names[num]
-patch = sys.modules[patch_names[num]]
+etc.mode = mode_names[num]
+mode = sys.modules[mode_names[num]]
 
-# run setup functions if patches have them
-# TODO: setup needs to get passed screen for things like setting sizes
-for patch_name in patch_names :
+# run setup functions if modees have them
+for mode_name in mode_names :
     try :
-        patch = sys.modules[patch_name]
-        patch.setup(screen, etc)
+        mode = sys.modules[mode_name]
+        etc.mode_root = MODES_PATH + mode_name + "/"
+        print etc.mode_root
+        mode.setup(screen, etc)
     except AttributeError :
         print "no setup found"
         continue 
@@ -187,19 +190,17 @@ for i in range(0,11):
     etc.tengrabs_thumbs.append(pygame.Surface((128, 72)))
     etc.tengrabs.append(pygame.Surface(hwscreen.get_size()))
 
-for filepath in sorted(glob.glob('/usbdrive/Grabs/*.jpg')):
+for filepath in sorted(glob.glob(GRABS_PATH + '*.jpg')):
     filename = os.path.basename(filepath)
     print 'loading grab: ' + filename
     img = pygame.image.load(filepath)
     img = img.convert()
     thumb = pygame.transform.scale(img, (128, 72) )
-    #TODO : ensure img is 1280 x 720
+    #TODO : ensure img is 1280 x 720, or does it matter
     etc.tengrabs[etc.grabcount]= img
     etc.tengrabs_thumbs[etc.grabcount] = thumb
     etc.grabcount += 1
     if etc.grabcount > 10: break
-
-
 
 buf = ''
 line = ''
@@ -274,21 +275,22 @@ while 1:
     except :
         pass
 
-
-    if etc.next_patch: 
+    if etc.next_mode: 
         error = ''
         num += 1
-        if num == len(patch_names) : 
+        if num == len(mode_names) : 
             num = 0
-        etc.patch = patch_names[num]
-        patch = sys.modules[patch_names[num]]
-    if etc.prev_patch: 
+        etc.mode = mode_names[num]
+        etc.mode_root = MODES_PATH + etc.mode + "/"
+        mode = sys.modules[mode_names[num]]
+    if etc.prev_mode: 
         error = ''
         num -= 1
         if num < 0 : 
-            num = len(patch_names) - 1
-        etc.patch = patch_names[num]
-        patch = sys.modules[patch_names[num]]
+            num = len(mode_names) - 1
+        etc.mode = mode_names[num]
+        etc.mode_root = MODES_PATH + etc.mode + "/"
+        mode = sys.modules[mode_names[num]]
 
     if etc.clear_screen:
         screen.fill(etc.bg_color) 
@@ -298,57 +300,58 @@ while 1:
 
     etc.bg_color =  etc.color_picker_bg()
     
-    # set patch
-    if etc.set_patch :
+    # set mode
+    if etc.set_mode :
         error = ''
-        print "setting: " + etc.patch
+        print "setting: " + etc.mode
         try :
-            patch = sys.modules[etc.patch]
+            etc.mode_root = MODES_PATH + etc.mode + "/"
+            mode = sys.modules[etc.mode]
         except KeyError:
-            error = "Module " +etc.patch+ " is not loaded, probably it has errors"
+            error = "Module " +etc.mode+ " is not loaded, probably it has errors"
 
     # reload
-    if etc.reload_patch :
+    if etc.reload_mode :
         error = ''
         # delete the old
-        if etc.patch in sys.modules:  
-            del(sys.modules[etc.patch]) 
+        if etc.mode in sys.modules:  
+            del(sys.modules[etc.mode]) 
         print "deleted module, reloading"
-        patch_name = etc.patch
-        patch_path = '/usbdrive/Patches/'+patch_name+'/main.py'
+        mode_name = etc.mode
+        mode_path = MODES_PATH+mode_name+'/main.py'
         try :
-            patch = imp.load_source(patch_name, patch_path)
+            mode = imp.load_source(mode_name, mode_path)
             print "reloaded"
             
             # then call setup
             try :
-                patch.setup(screen, etc)
+                etc.mode_root = MODES_PATH + mode_name + "/"
+                mode.setup(screen, etc)
             except Exception, e:
                 error = traceback.format_exc()
         except Exception, e:
             error = traceback.format_exc()
     
     try :
-        patch.draw(screen, etc)
+        etc.mode_root = MODES_PATH + mode_name + "/"
+        mode.draw(screen, etc)
     except Exception, e:
         error = traceback.format_exc()
  
     #save frame
     if etc.screengrab:
         filenum = 0
-        imagepath = "/usbdrive/Grabs/" + str(filenum) + ".jpg"
-        imagepath_thumb = "/usbdrive/Grabs/" + str(filenum) + "_thumb.jpg"
+        imagepath = GRABS_PATH + str(filenum) + ".jpg"
+        imagepath_thumb = GRABS_PATH + str(filenum) + "_thumb.jpg"
         while os.path.isfile(imagepath):
             filenum += 1
-            imagepath = "/usbdrive/Grabs/" + str(filenum) + ".jpg"
-            imagepath_thumb = "/usbdrive/Grabs/" + str(filenum) + "_thumb.jpg"
+            imagepath = GRABS_PATH + str(filenum) + ".jpg"
         pygame.image.save(screen,imagepath)
         # add to the grabs array
         #grab = screen
         etc.grabindex += 1
         etc.grabindex %= 10
         pygame.transform.scale(screen, (128, 72), etc.tengrabs_thumbs[etc.grabindex] )
-        pygame.image.save(etc.tengrabs_thumbs[etc.grabindex],imagepath_thumb)
         etc.tengrabs[etc.grabindex] = screen.copy()
         print imagepath
    
@@ -366,8 +369,8 @@ while 1:
         #osd.fill(GREEN) 
         pygame.draw.rect(hwscreen, OSDBG, (0, hwscreen.get_height() - 40, hwscreen.get_width(), 40))
         font = pygame.font.SysFont(None, 32)
-        #text = font.render(str(patch.__name__) + ', frame: ' + str(count) + ', fps: ' + str(int(fps)) + ', Auto Clear: ' + str(etc.auto_clear) + ', osc: ' + str(osc_msgs_recv) + ', osc / sec: ' + str(osc_msgs_per_sec), True, WHITE, OSDBG)
-        text = font.render(str(patch.__name__) + ', frame: ' + str(count) + ', fps: ' + str(int(fps)) + ' IP: ' + str(etc.ip), True, WHITE, OSDBG)
+        #text = font.render(str(mode.__name__) + ', frame: ' + str(count) + ', fps: ' + str(int(fps)) + ', Auto Clear: ' + str(etc.auto_clear) + ', osc: ' + str(osc_msgs_recv) + ', osc / sec: ' + str(osc_msgs_per_sec), True, WHITE, OSDBG)
+        text = font.render(str(mode.__name__) + ', frame: ' + str(count) + ', fps: ' + str(int(fps)) + ' IP: ' + str(etc.ip), True, WHITE, OSDBG)
         text_rect = text.get_rect()
         text_rect.x = 50
         text_rect.centery = hwscreen.get_height() - 20

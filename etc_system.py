@@ -15,7 +15,7 @@ class System:
 
     # TODO  fix this knob shit up
 
-    # knobs used by patch (either preset or live)
+    # knobs used by mode (either preset or live)
     knob1 = .200
     knob2 = .200
     knob3 = .200
@@ -85,12 +85,12 @@ class System:
 
     bg_color = (0, 0, 0)
 
-    next_patch = False
-    prev_patch = False
-    set_patch = False
-    reload_patch = False
-    patch = ''
-    
+    next_mode = False
+    prev_mode = False
+    set_mode = False
+    reload_mode = False
+    mode = ''
+    mode_root = ''
     preset_index = 0
 
     quit = False
@@ -236,11 +236,11 @@ class System:
   
         if len (array) == 1:
             if array[0] == "rst": 
-                self.reload_patch = True
+                self.reload_mode = True
    
         if len (array) == 1:
             if array[0] == "rlp": 
-                self.reload_patch = True
+                self.reload_mode = True
  
         if len (array) == 1:
             if array[0] == "cs": 
@@ -258,12 +258,12 @@ class System:
         if len(array) == 1:
             if array[0] == "np" :
                 print 'np'
-                self.next_patch = True
+                self.next_mode = True
        
         if len(array) == 1:
             if array[0] == "pp" :
                 print 'pp'
-                self.prev_patch = True
+                self.prev_mode = True
    
         if len(array) == 1:
             if array[0] == "spre" :
@@ -308,9 +308,9 @@ class System:
                 if self.whole_note_count == 96 : self.midi_clk_count = 0
 
         if len(array) == 2 :
-            if array[0] == "setpatch" :
-                self.set_patch = True
-                self.patch = array[1]
+            if array[0] == "setmode" :
+                self.set_mode = True
+                self.mode = array[1]
 
 
         # basic parse of knob array
@@ -353,7 +353,7 @@ class System:
     def save_preset(self):
         print "saving preset"
         fo = open("/usbdrive/presets.txt", "a+")
-        fo.write(self.patch + "," + str(self.knob1) + "," + str(self.knob2) +"," + str(self.knob3) + "," + str(self.knob4) +  "," + str(self.knob5) + "," + str(self.auto_clear) + "\n");
+        fo.write(self.mode + "," + str(self.knob1) + "," + str(self.knob2) +"," + str(self.knob3) + "," + str(self.knob4) +  "," + str(self.knob5) + "," + str(self.auto_clear) + "\n");
         fo.close()
 
     def next_preset(self):
@@ -378,7 +378,7 @@ class System:
         array = preset.strip().split(',')
         if len(array) == 7 :
             print "recalling preset: " + str(preset)
-            self.patch = array[0]
+            self.mode = array[0]
             # snapshot current knobs
             self.knob1s = self.knob1l 
             self.knob2s = self.knob2l
@@ -399,7 +399,7 @@ class System:
                 self.auto_clear = False
             else :
                 self.auto_clear = True
-            self.set_patch = True
+            self.set_mode = True
 
 
     # TODO  fix this,  what the hell!!!!
@@ -446,8 +446,8 @@ class System:
             self.knob5 = self.knob5l
 
     def clear_flags(self):
-        self.next_patch = False
-        self.prev_patch = False
+        self.next_mode = False
+        self.prev_mode = False
         self.clear_screen = False
         self.note_on = False
         self.note_off = False
@@ -458,9 +458,9 @@ class System:
         self.thirtysecond_note = False
         self.half_note = False
         self.whole_note = False
-        self.next_patch = False
-        self.set_patch = False
-        self.reload_patch = False
+        self.next_mode = False
+        self.set_mode = False
+        self.reload_mode = False
         self.aux_button = False
         self.screengrab = False
         self.trig = False
