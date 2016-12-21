@@ -10,7 +10,9 @@ class System:
     grabcount = 0
     grabindex = 0
 
-    
+
+    ip = ''
+
     # TODO  fix this knob shit up
 
     # knobs used by patch (either preset or live)

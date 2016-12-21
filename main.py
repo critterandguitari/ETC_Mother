@@ -16,6 +16,10 @@ import alsaaudio, audioop
 etc = etc_system.System()
 etc.clear_flags()
 
+# get our ip
+etc.ip = socket.gethostbyname(socket.gethostname())
+
+
 # OSC init
 try:
     osc_server = liblo.Server(4000)
@@ -212,6 +216,7 @@ this_time = 0
 trig_last_time = time.time()
 trig_this_time = 0
 
+
 while 1:
     
     #check for OSC
@@ -347,11 +352,13 @@ while 1:
         etc.tengrabs[etc.grabindex] = screen.copy()
         print imagepath
    
-    #draw the main screen
+    #draw the main screen, limit fps 30
+    clocker.tick(30)
     hwscreen.blit(screen, (0,0))
     
     # osd
     if etc.osd :
+        etc.ip = socket.gethostbyname(socket.gethostname())
         this_time = time.time()
         elapsed_time = this_time - last_time
         last_time = this_time
@@ -359,7 +366,8 @@ while 1:
         #osd.fill(GREEN) 
         pygame.draw.rect(hwscreen, OSDBG, (0, hwscreen.get_height() - 40, hwscreen.get_width(), 40))
         font = pygame.font.SysFont(None, 32)
-        text = font.render(str(patch.__name__) + ', frame: ' + str(count) + ', fps: ' + str(int(fps)) + ', Auto Clear: ' + str(etc.auto_clear) + ', osc: ' + str(osc_msgs_recv) + ', osc / sec: ' + str(osc_msgs_per_sec), True, WHITE, OSDBG)
+        #text = font.render(str(patch.__name__) + ', frame: ' + str(count) + ', fps: ' + str(int(fps)) + ', Auto Clear: ' + str(etc.auto_clear) + ', osc: ' + str(osc_msgs_recv) + ', osc / sec: ' + str(osc_msgs_per_sec), True, WHITE, OSDBG)
+        text = font.render(str(patch.__name__) + ', frame: ' + str(count) + ', fps: ' + str(int(fps)) + ' IP: ' + str(etc.ip), True, WHITE, OSDBG)
         text_rect = text.get_rect()
         text_rect.x = 50
         text_rect.centery = hwscreen.get_height() - 20
@@ -378,7 +386,6 @@ while 1:
             hwscreen.blit(errormsg, text_rect)
             i += 1
 
-    #clocker.tick(35)
     pygame.display.flip()
 
     if etc.quit :
