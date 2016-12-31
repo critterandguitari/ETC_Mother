@@ -9,6 +9,7 @@ import socket
 import traceback
 import sys
 import liblo
+import psutil
 from pygame.locals import *
 import alsaaudio, audioop
 
@@ -23,6 +24,12 @@ etc.clear_flags()
 etc.ip = socket.gethostbyname(socket.gethostname())
 
 # OSC init
+try:
+    osc_target = liblo.Address(4001)
+except liblo.AddressError as err:
+    print(err)
+    sys.exit()
+
 try:
     osc_server = liblo.Server(4000)
 except liblo.ServerError, err:
@@ -131,25 +138,41 @@ sock = socket.socket(socket.AF_INET, # Internet
 sock.bind((UDP_IP, UDP_PORT))
 sock.setblocking(0)
 
-# TODO :  make helper module, include functions like these :
-def get_immediate_subdirectories(dir):
-    return [name for name in os.listdir(dir)
-            if os.path.isdir(os.path.join(dir, name))]
-
 # init fb and main surfaces
 print "opening frame buffer"
 hwscreen = pygame.display.set_mode((1280,720),  pygame.FULLSCREEN | pygame.DOUBLEBUF, 32  )
-#hwscreen = pygame.display.set_mode((720,480),  pygame.FULLSCREEN | pygame.DOUBLEBUF, 32  )
 screen = pygame.Surface(hwscreen.get_size())
-screen.fill(GREEN) 
+screen.fill((40,40,40)) 
 hwscreen.blit(screen, (0,0))
 pygame.display.flip()
 hwscreen.blit(screen, (0,0))
 pygame.display.flip()
+liblo.send(osc_target, "/led", 7) # running
 time.sleep(3)
 
-# TODO :  don't make a list of moduels, just make a list of their names, and select them from  sys.modules
-print "loading modees..."
+# loading banner helper
+def loading_banner(stuff) :
+    global hwscreen
+    screen.fill((40,40,40)) 
+    font = pygame.font.SysFont(None, 40)
+    text = font.render(stuff, True, WHITE, (40,40,40))
+    text_rect = text.get_rect()
+    text_rect.x = 20
+    text_rect.y = 20
+    hwscreen.blit(text, text_rect)
+    pygame.display.flip()
+
+
+# directory helper
+def get_immediate_subdirectories(dir):
+    if os.path.isdir(dir):
+        return [name for name in os.listdir(dir) if os.path.isdir(os.path.join(dir, name))]  
+    else :
+        return []
+
+# load modes,  check if modes are found
+print "loading modes..."
+got_a_mode = False
 mode_names = []
 mode_folders = get_immediate_subdirectories(MODES_PATH)
 
@@ -159,9 +182,25 @@ for mode_folder in mode_folders :
     print mode_path
     try :
         imp.load_source(mode_name, mode_path)
+        got_a_mode = True
         mode_names.append(mode_name)
     except Exception, e:
         print traceback.format_exc()
+
+#if not(os.path.isdir(MODES_PATH)) :
+if not(got_a_mode) :
+    print "no modes found."
+    loading_banner("No Modes found.  Insert USB drive with Modes folder and restart.")
+    while True:
+        # quit on esc
+        for event in pygame.event.get():
+            if event.type == QUIT:
+                exit()
+            elif event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    exit()
+        time.sleep(1)
+
 
 # set initial mode
 num = 0
@@ -171,6 +210,7 @@ mode = sys.modules[mode_names[num]]
 # run setup functions if modees have them
 for mode_name in mode_names :
     try :
+        loading_banner("Loading " + str(mode_name) + ". Memory used: " + str(psutil.virtual_memory()[2]) )
         mode = sys.modules[mode_name]
         etc.mode_root = MODES_PATH + mode_name + "/"
         print etc.mode_root
@@ -179,8 +219,11 @@ for mode_name in mode_names :
         print "no setup found"
         continue 
 
+# recent grabs, first check if Grabs folder is available, create if not
 
-# recent grabs
+if not(os.path.isdir(GRABS_PATH)) :
+    print 'No grab folder, creating...'
+    os.system('mkdir ' + GRABS_PATH)
 print 'loading recent grabs...'
 etc.tengrabs = []
 etc.tengrabs_thumbs = []
@@ -196,7 +239,7 @@ for filepath in sorted(glob.glob(GRABS_PATH + '*.jpg')):
     img = pygame.image.load(filepath)
     img = img.convert()
     thumb = pygame.transform.scale(img, (128, 72) )
-    #TODO : ensure img is 1280 x 720, or does it matter
+    #TODO : ensure img is 1280 x 720, or does it matter?
     etc.tengrabs[etc.grabcount]= img
     etc.tengrabs_thumbs[etc.grabcount] = thumb
     etc.grabcount += 1
