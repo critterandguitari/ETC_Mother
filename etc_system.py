@@ -8,6 +8,9 @@ class System:
     MODES_PATH = "/usbdrive/Modes/"
 
     RES =  (1280,720)
+    
+    fps = 0
+    frame_count = 0
 
     # set up the colors
     BLACK = (0, 0, 0)
@@ -23,13 +26,15 @@ class System:
     tengrabs_thumbs = []
     grabcount = 0
     grabindex = 0
+    
 
     # modes
     mode_names = []
-    cur_mode_index = 0
+    mode_index = 0
     mode = ''
     mode_root = ''
     refresh_mode = False
+    error = ''
     
     audio_in = [0] * 100
     
@@ -70,21 +75,27 @@ class System:
     quit = False
     osd = False
 
-    def next_mode (self) :
-        self.cur_mode_index += 1
-        if self.cur_mode_index == len(self.mode_names) : 
-            self.cur_mode_index = 0
-        self.mode = self.mode_names[self.cur_mode_index]
-        #TODO, make sure to update mode_root too
-        #self.mode_root = MODES_PATH + etc.mode + "/"
+
+    def set_mode_by_name (self, new_mode) :
+        pass
+
+    def set_mode_by_index (self, index) :
+        self.mode_index = index
+        self.mode = self.mode_names[self.mode_index]
+        self.mode_root = self.MODES_PATH + self.mode + "/"
         self.refresh_mode = True
 
+    def next_mode (self) :
+        self.mode_index += 1
+        if self.mode_index == len(self.mode_names) : 
+            self.mode_index = 0
+        self.set_mode_by_index(self.mode_index)
 
     def prev_mode (self) :
-        pass
-
-    def set_mode (self, new_mode) :
-        pass
+        self.mode_index -= 1
+        if self.mode_index <= 0 : 
+            self.mode_index = len(self.mode_names) - 1
+        self.set_mode_by_index(self.mode_index)
 
     def update_knob (self, index, val) :
         if self.knob_override[index] :
