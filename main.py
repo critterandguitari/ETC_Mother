@@ -29,7 +29,6 @@ etc.ip = socket.gethostbyname(socket.gethostname())
 
 # setup osc
 osc.init(etc)
-osc.send("/led", 7) # set led to running
 
 # setup alsa sound
 sound.init(etc)
@@ -44,6 +43,7 @@ clocker = pygame.time.Clock() # for locking fps
 
 # on screen display and other screen helpers
 osd.init(etc)
+osc.send("/led", 7) # set led to running
 
 # init fb and main surfaces
 print "opening frame buffer..."
@@ -58,7 +58,7 @@ time.sleep(2)
 
 # load modes, post banner if none found
 print "loading modes..."
-if not (filer.load_modes() ) :
+if not (filer.load_modes()) :
     print "no modes found."
     osd.loading_banner(hwscreen, "No Modes found.  Insert USB drive with Modes folder and restart.")
     while True:
@@ -93,7 +93,6 @@ start = time.time()
 etc.set_mode_by_index(0)
 mode = sys.modules[etc.mode]
 
-
 time.sleep(1)
 
 while 1:
@@ -125,7 +124,9 @@ while 1:
     # check for sound
     sound.recv()
 
-    # set the mode on which to call draw
+    # set the mode on which to call drawi
+# TODO if the module is no longer in sys (like got deleted and not reloaded, this will error,
+# so use exception
     if etc.refresh_mode:
         error = ''
         mode = sys.modules[etc.mode]
@@ -148,28 +149,27 @@ while 1:
     #    except KeyError:
     #        error = "Module " +etc.mode+ " is not loaded, probably it has errors"
 
-    # reload
-    #if etc.reload_mode :
-    #    error = ''
-    #    # delete the old
-    #    if etc.mode in sys.modules:  
-    #        del(sys.modules[etc.mode]) 
-    #    print "deleted module, reloading"
-    #    mode_name = etc.mode
-    #    mode_path = MODES_PATH+mode_name+'/main.py'
-    #    try :
-    #        mode = imp.load_source(mode_name, mode_path)
-    #        print "reloaded"
-            
+    # reload mode
+    if etc.reload_mode :
+        etc.error = ''
+        # delete the old, and reload
+        if etc.mode in sys.modules:  
+            del(sys.modules[etc.mode]) 
+        print "deleted module, reloading"
+        try :
+            mode = imp.load_source(etc.mode, etc.mode_root+'/main.py')
+            print "reloaded"
             # then call setup
-     #       try :
-     #           etc.mode_root = MODES_PATH + mode_name + "/"
-     #           mode.setup(screen, etc)
-     #       except Exception, e:
-     #           error = traceback.format_exc()
-     #   except Exception, e:
-     #       error = traceback.format_exc()
+            try :
+                mode.setup(screen, etc)
+            except Exception, e:
+                etc.error = traceback.format_exc()
+                print "error with setup: " + etc.error
+        except Exception, e:
+            etc.error = traceback.format_exc()
+            print "error reloading: " + etc.error
     
+    # draw it
     try :
         mode.draw(screen, etc)
     except Exception, e:

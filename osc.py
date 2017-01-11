@@ -9,25 +9,47 @@ osc_target = None
 def fallback(path, args):
     pass
 
-
 def mblob_callback(path, args):
     global etc
+    midi_blob = args[0]
     #print "received message: " + str(args)
-    etc.update_knob(0, float(args[0][0]) / 127)
-    etc.update_knob(1, float(args[0][1]) / 127)
-    etc.update_knob(2, float(args[0][2]) / 127)
-    etc.update_knob(3, float(args[0][3]) / 127)
-    etc.update_knob(4, float(args[0][4]) / 127)
+#    etc.update_knob(0, float(midi_blob[16]) / 127)
+#    etc.update_knob(1, float(midi_blob[17]) / 127)
+#    etc.update_knob(2, float(midi_blob[18]) / 127)
+#    etc.update_knob(3, float(midi_blob[19]) / 127)
+#    etc.update_knob(4, float(midi_blob[20]) / 127)
+    etc.midi_clk = midi_blob[21] 
+    etc.midi_pgm = midi_blob[22]
+    
+    # parse the notes outta the bit field
+    for i in range(0, 16) :
+        for j in range(0, 8) :
+            if midi_blob[i] & (1<<j) :
+                etc.notes[(i * 8) + j] = 1
+            else :
+                etc.notes[(i * 8) + j] = 0
+
+def set_callback(path, args):
+    global etc
+    name = args[0]
+    etc.set_mode_by_name(name)
+    print "set patch to: " + str(etc.mode) + " with index " + str(etc.mode_index)
+    
+def reload_callback(path, args):
+    global etc
+    print "reloading: " + str(etc.mode)
+    etc.reload_mode = True
+    
 
 def knobs_callback(path, args):
     global etc
     k1, k2, k3, k4, k5, k6 = args
-    print "received message: " + str(args)
-#    etc.update_knob(0, float(k4) / 1023)
-#    etc.update_knob(1, float(k1) / 1023)
-#    etc.update_knob(2, float(k2) / 1023)
-#    etc.update_knob(3, float(k5) / 1023)
-#    etc.update_knob(4, float(k3) / 1023)
+    #print "received message: " + str(args)
+    etc.update_knob(0, float(k4) / 1023)
+    etc.update_knob(1, float(k1) / 1023)
+    etc.update_knob(2, float(k2) / 1023)
+    etc.update_knob(3, float(k5) / 1023)
+    etc.update_knob(4, float(k3) / 1023)
 
 def keys_callback(path, args) :
     global etc
@@ -46,37 +68,14 @@ def keys_callback(path, args) :
         if (etc.auto_clear) : etc.auto_clear = False
         else : etc.auto_clear = True
 
-    print str(k) + " " + str(v)
+    #print str(k) + " " + str(v)
 
-def midi_note_on_callback(path, args):
-    global etc
-    c, n, v = args
-    etc.note_on = True
-    etc.note_num = n
-    etc.note_velocity = v
-
-def midi_cc_callback(path, args):
-    global etc
-    c, n, v = args
-
-    if n == 21 :
-        etc.knob1 = float(v) / 127
-    if n == 22 :
-        etc.knob2 = float(v) / 127
-    if n == 23 :
-        etc.knob3 = float(v) / 127
-    if n == 24 :
-        etc.knob4 = float(v) / 127
-    if n == 25 :
-        etc.knob5 = float(v) / 127
 
 def init (etc_object) :
-   
     global osc_server, osc_target, etc
-
     etc = etc_object
     
-# OSC init server and client
+    # OSC init server and client
     try:
         osc_target = liblo.Address(4001)
     except liblo.AddressError as err:
@@ -91,17 +90,16 @@ def init (etc_object) :
 
     osc_server.add_method("/knobs", 'iiiiii', knobs_callback)
     osc_server.add_method("/key", 'ii', keys_callback)
-    osc_server.add_method("/mnon", 'iii', midi_note_on_callback)
-    osc_server.add_method("/mcc", 'iii', midi_cc_callback)
-    osc_server.add_method("/setPatch", 's', midi_cc_callback)
     osc_server.add_method("/mblob", 'b', mblob_callback)
+    osc_server.add_method("/reload", 'i', reload_callback)
+  #  osc_server.add_method("/new", 's', reload_callback)
+    osc_server.add_method("/set", 's', set_callback)
     osc_server.add_method(None, None, fallback)
 
 def recv() :
     global osc_server
     while (osc_server.recv(1)):
         pass
-    #osc_server.recv(0)
 
 def send(addr, args) :
     global osc_target

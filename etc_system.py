@@ -12,7 +12,7 @@ class System:
     fps = 0
     frame_count = 0
 
-    # set up the colors
+    # some colors we use
     BLACK = (0, 0, 0)
     WHITE = (255, 255, 255)
     RED = (255, 0, 0)
@@ -20,14 +20,12 @@ class System:
     BLUE = (0, 0, 255)
     OSDBG = (0,0,255)
 
-
     # screen grabs
     tengrabs = []
     tengrabs_thumbs = []
     grabcount = 0
     grabindex = 0
     
-
     # modes
     mode_names = []
     mode_index = 0
@@ -36,10 +34,11 @@ class System:
     refresh_mode = False
     error = ''
     
+    # audio
     audio_in = [0] * 100
+    trig = False
     
-
-    # knobs used by mode 
+    # knobs a used by mode 
     knob1 = .200
     knob2 = .200
     knob3 = .200
@@ -51,30 +50,19 @@ class System:
     knob_snapshot = [.2] * 5
     knob_override = [False] * 5
 
-    # midi stuff
-    midi_clk = False
-    midi_start = False
-    midi_stop = False
-    midi_clk_count = 0
-    
+    # midi stuff (CC gets updated into knobs
+    notes = [0] * 128
+    midi_pgm = 0
+    midi_clk = 0
 
-    note_on = False
-    note_off = False
-    note_ch = 1
-    note_velocity = 0
-    note_num = 60
-    
+    # system stuff 
     ip = ''
-    trig = False
     screengrab = False
     auto_clear = True
     bg_color = (0, 0, 0)
-    set_mode = False
-    reload_mode = False
-    preset_index = 0
     quit = False
     osd = False
-
+    reload_mode = False
 
     def set_mode_by_name (self, new_mode) :
         pass
@@ -82,6 +70,12 @@ class System:
     def set_mode_by_index (self, index) :
         self.mode_index = index
         self.mode = self.mode_names[self.mode_index]
+        self.mode_root = self.MODES_PATH + self.mode + "/"
+        self.refresh_mode = True
+
+    def set_mode_by_name (self, name) :
+        self.mode = name #self.mode_names[self.mode_index]
+        self.mode_index = self.mode_names.index(name)
         self.mode_root = self.MODES_PATH + self.mode + "/"
         self.refresh_mode = True
 
@@ -216,33 +210,6 @@ class System:
         self.bg_color = color
         return color
  
-        # basic midi start
-  #      if len(array) == 1:
-  #          if array[0] == "ms" :
-  #              self.midi_start = True
-  #              self.midi_clk_count = 0
-  #              self.whole_note_count = 0
-        
-  #      # basic midi syn
-  #      if len(array) == 1:
-  #          if array[0] == "my" :
-  #              self.clk = True
-  #              
-  #              if self.whole_note_count == 0: self.whole_note = True
-  #              if (self.whole_note_count % 48) == 0: self.half_note = True
-#
- #               if self.midi_clk_count == 0 : self.quarter_note = True
- #               if (self.midi_clk_count % 12) == 0 : self.eighth_note = True
- #               if (self.midi_clk_count % 8) == 0 : self.eighth_note_triplet = True
- #               if (self.midi_clk_count % 6) == 0 : self.sixteenth_note = True
- #               if (self.midi_clk_count % 3) == 0 : self.thirty_triplet = True
-
- #               self.midi_clk_count += 1
- #               if self.midi_clk_count == 24 : self.midi_clk_count = 0
-
- #               self.whole_note_count += 1
- #               if self.whole_note_count == 96 : self.midi_clk_count = 0
-
     def save_preset(self):
         print "saving preset"
         fo = open("/usbdrive/presets.txt", "a+")
