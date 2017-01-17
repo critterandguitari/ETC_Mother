@@ -10,12 +10,20 @@ def init(etc_obj) :
 # loading banner helper
 def loading_banner(screen, stuff) :
     global etc
-    screen.fill((40,40,40)) 
-    font = pygame.font.SysFont(None, 40)
-    text = font.render(stuff, True, etc.WHITE, (40,40,40))
+    screen.fill((0,0,0)) 
+        
+    font = pygame.font.Font("./Avenir-Medium.ttf", 150)
+    text = font.render("ETC", True, (255,255,255))
+    textpos = text.get_rect()
+    textpos.centerx = screen.get_width() / 2
+    textpos.centery = screen.get_height() /2
+    screen.blit(text, textpos)
+
+    font = pygame.font.Font("./Avenir-Medium.ttf", 32)
+    text = font.render(stuff, True, (255,255,255))
     text_rect = text.get_rect()
     text_rect.x = 20
-    text_rect.y = 20
+    text_rect.y = 650
     screen.blit(text, text_rect)
     pygame.display.flip()
 

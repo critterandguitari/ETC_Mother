@@ -38,11 +38,12 @@ osc.send("/led", 7) # set led to running
 print "opening frame buffer..."
 hwscreen = pygame.display.set_mode(etc.RES,  pygame.FULLSCREEN | pygame.DOUBLEBUF, 32)
 screen = pygame.Surface(hwscreen.get_size())
-screen.fill((40,40,40)) 
+screen.fill((0,0,0)) 
 hwscreen.blit(screen, (0,0))
 pygame.display.flip()
 hwscreen.blit(screen, (0,0))
 pygame.display.flip()
+osd.loading_banner(hwscreen, "")
 time.sleep(2)
 
 # etc gets a refrence to screen so it can save screen grabs 
