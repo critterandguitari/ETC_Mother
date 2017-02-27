@@ -398,7 +398,6 @@ class System:
         g = (1 - (math.cos(c * 7 * math.pi) * .5 + .5)) * c
         b = (1 - (math.cos(c * 11 * math.pi) * .5 + .5)) * c
         
-        
         color = (r * 255,g * 255,b * 255)
         
         self.bg_color = color

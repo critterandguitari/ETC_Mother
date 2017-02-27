@@ -34,6 +34,25 @@ clocker = pygame.time.Clock() # for locking fps
 osd.init(etc)
 osc.send("/led", 7) # set led to running
 
+# set midi ch, check for file, default to 1
+ch = 1
+try :
+    file = open("/usbdrive/MIDI.txt", "r")
+    line = file.readline()
+    ch = int(line.strip())
+except IOError as (errno, strerror):
+    print "MIDI ch file I/O error({0}): {1}".format(errno, strerror)
+except ValueError:
+    print "Could not convert data to an integer."
+except:
+    print "Unexpected error:", sys.exc_info()[0]
+    raise
+
+# force midi to 17 (0 is omni)
+ch = ch % 17
+print "set MIDI to ch " + str(ch)
+osc.send("/midich", int(ch))
+
 # init fb and main surfaces
 print "opening frame buffer..."
 hwscreen = pygame.display.set_mode(etc.RES,  pygame.FULLSCREEN | pygame.DOUBLEBUF, 32)
